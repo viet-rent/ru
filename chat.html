@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Чат</title>
+  <style>
+    body { font-family: Arial; padding: 20px; max-width: 500px; margin: auto; }
+    #chat { border:1px solid #ccc; padding:10px; margin-top:10px; display:none; }
+    #messages { height:250px; overflow-y:auto; border:1px solid #eee; padding:5px; }
+    .msg { margin:4px 0; }
+    .name { font-weight:bold; }
+    .time { font-size:0.8em; color:#888; }
+    input, button { padding:6px; margin:2px; }
+    #error { color:red; margin-top:5px; }
+  </style>
+</head>
+<body>
+
+<button id="openBtn">💬 Открыть чат</button>
+<div id="chat">
+  <div id="messages"></div>
+  <input id="nameInput" type="text" placeholder="Имя" value="Гость">
+  <input id="msgInput" type="text" placeholder="Сообщение" style="width:60%;">
+  <button id="sendBtn">Отправить</button>
+  <button id="closeBtn">Закрыть</button>
+  <div id="error"></div>
+</div>
+
+<script>
+// ===== ВАШ URL (обязательно обновите!) =====
+const API_URL = 'https://script.google.com/macros/s/AKfycbyRw1IZRElZNXN7WR-CK4uHmFbDEM3xZDM6IOnui_y1h7YnAn7EVOaGK7zFjpTZK7Q7zQ/exec';
+
+// ===== Состояние =====
+let userName = localStorage.getItem('chat_user_name') || 'Гость';
+let userID = localStorage.getItem('chat_user_id') || 'user_' + Date.now();
+localStorage.setItem('chat_user_id', userID);
+
+let history = JSON.parse(localStorage.getItem('chat_history') || '[]');
+let ids = new Set(history.map(m => m.msgId));
+
+// ===== DOM =====
+const openBtn = document.getElementById('openBtn');
+const chatDiv = document.getElementById('chat');
+const messagesDiv = document.getElementById('messages');
+const nameInput = document.getElementById('nameInput');
+const msgInput = document.getElementById('msgInput');
+const sendBtn = document.getElementById('sendBtn');
+const closeBtn = document.getElementById('closeBtn');
+const errorDiv = document.getElementById('error');
+
+nameInput.value = userName;
+
+// ===== Рендер =====
+function render() {
+  messagesDiv.innerHTML = history.map(m => 
+    `<div class="msg"><span class="name">${m.userName}</span> ${m.message} <span class="time">${new Date(m.timestamp).toLocaleTimeString()}</span></div>`
+  ).join('');
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+render();
+
+// ===== Загрузка =====
+function load() {
+  fetch(API_URL)
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(data => {
+      if (data.error) throw new Error(data.error);
+      const newMsgs = data.messages.filter(m => !ids.has(m.msgId));
+      if (newMsgs.length) {
+        newMsgs.forEach(m => { ids.add(m.msgId); history.push(m); });
+        localStorage.setItem('chat_history', JSON.stringify(history));
+        render();
+      }
+      errorDiv.textContent = '';
+    })
+    .catch(e => errorDiv.textContent = 'Ошибка загрузки: ' + e.message);
+}
+
+// ===== Отправка =====
+function send() {
+  const name = nameInput.value.trim() || 'Гость';
+  const text = msgInput.value.trim();
+  if (!text) return;
+
+  const msgId = userID + '_' + Date.now();
+  const msg = {
+    timestamp: new Date().toISOString(),
+    userID: userID,
+    userName: name,
+    message: text,
+    msgId: msgId
+  };
+
+  history.push(msg);
+  ids.add(msgId);
+  localStorage.setItem('chat_history', JSON.stringify(history));
+  render();
+  msgInput.value = '';
+  errorDiv.textContent = 'Отправка...';
+
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(msg)
+  })
+  .then(r => {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
+  .then(data => {
+    if (data.error) throw new Error(data.error);
+    errorDiv.textContent = 'Отправлено!';
+    load(); // обновить историю с сервера
+  })
+  .catch(e => errorDiv.textContent = 'Ошибка отправки: ' + e.message);
+}
+
+// ===== События =====
+openBtn.onclick = function() {
+  chatDiv.style.display = 'block';
+  openBtn.style.display = 'none';
+  load();
+  if (!window.pollInterval) {
+    window.pollInterval = setInterval(load, 5000);
+  }
+};
+closeBtn.onclick = function() {
+  chatDiv.style.display = 'none';
+  openBtn.style.display = 'inline';
+  if (window.pollInterval) {
+    clearInterval(window.pollInterval);
+    window.pollInterval = null;
+  }
+};
+sendBtn.onclick = send;
+msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') send(); });
+nameInput.addEventListener('change', function() {
+  localStorage.setItem('chat_user_name', this.value.trim() || 'Гость');
+});
+</script>
+</body>
+</html>
