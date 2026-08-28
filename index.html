@@ -740,5 +740,464 @@
     })();
 </script>
 
+<style>
+  /* === Стили виджета === */
+  #chat-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #1a73e8;
+    color: #fff;
+    font-size: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 1000;
+    transition: 0.2s;
+    border: none;
+    user-select: none;
+  }
+  #chat-toggle:hover {
+    transform: scale(1.05);
+  }
+  #chat-window {
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    width: 340px;
+    max-height: 480px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    display: none;
+    flex-direction: column;
+    z-index: 1001;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+  }
+  #chat-header {
+    background: #1a73e8;
+    color: #fff;
+    padding: 14px 18px;
+    font-weight: bold;
+    font-size: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: default;
+  }
+  #chat-close {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 4px;
+  }
+  #chat-messages {
+    flex: 1;
+    padding: 12px 16px;
+    overflow-y: auto;
+    background: #f9f9f9;
+    min-height: 200px;
+    max-height: 340px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .msg {
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+  }
+  .msg .author {
+    font-weight: 600;
+    color: #333;
+    font-size: 12px;
+    margin-bottom: 2px;
+  }
+  .msg .text {
+    background: #e9ecef;
+    padding: 8px 12px;
+    border-radius: 18px;
+    display: inline-block;
+    max-width: 80%;
+    word-wrap: break-word;
+  }
+  .msg.own .text {
+    background: #d2e3fc;
+    align-self: flex-end;
+  }
+  .msg.own {
+    align-items: flex-end;
+  }
+  .msg .time {
+    font-size: 10px;
+    color: #888;
+    margin-top: 2px;
+  }
+  #chat-input-area {
+    display: flex;
+    padding: 10px 12px;
+    border-top: 1px solid #ddd;
+    background: #fff;
+  }
+  #chat-input {
+    flex: 1;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    padding: 8px 14px;
+    outline: none;
+    font-size: 14px;
+  }
+  #chat-input:focus {
+    border-color: #1a73e8;
+  }
+  #chat-send {
+    background: #1a73e8;
+    border: none;
+    color: #fff;
+    padding: 8px 18px;
+    border-radius: 20px;
+    margin-left: 8px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  #chat-send:hover {
+    background: #1557b0;
+  }
+  #chat-name-prompt {
+    padding: 16px;
+    background: #fff;
+    border-bottom: 1px solid #eee;
+    display: none;
+  }
+  #chat-name-prompt input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+  }
+  @media (max-width: 480px) {
+    #chat-window {
+      width: 300px;
+      right: 10px;
+      bottom: 80px;
+    }
+  }
+</style>
+
+<!-- HTML виджета -->
+<div id="chat-toggle" title="Открыть чат">💬</div>
+
+<div id="chat-window">
+  <div id="chat-header">
+    <span>💬 Чат поддержки</span>
+    <button id="chat-close">✕</button>
+  </div>
+  <div id="chat-name-prompt">
+    <input type="text" id="chat-name-input" placeholder="Введите ваше имя..." maxlength="30">
+  </div>
+  <div id="chat-messages"></div>
+  <div id="chat-input-area">
+    <input type="text" id="chat-input" placeholder="Напишите сообщение..." disabled>
+    <button id="chat-send" disabled>Отправить</button>
+  </div>
+</div>
+
+<script>
+  (function() {
+    'use strict';
+
+    // ===== НАСТРОЙКИ =====
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwdhQaKO2hYxQSU2LxusIKxraR-rwdUaIOp0z8ufT0_-L_Ek_CgSHvcQXS4JYqZFqEGRw/exec'; // например, https://script.google.com/macros/s/.../exec
+
+    // ===== DOM-элементы =====
+    const toggleBtn = document.getElementById('chat-toggle');
+    const chatWindow = document.getElementById('chat-window');
+    const closeBtn = document.getElementById('chat-close');
+    const messagesDiv = document.getElementById('chat-messages');
+    const inputField = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('chat-send');
+    const namePrompt = document.getElementById('chat-name-prompt');
+    const nameInput = document.getElementById('chat-name-input');
+
+    // ===== Состояние =====
+    let userName = localStorage.getItem('chat_user_name') || '';
+    let userID = localStorage.getItem('chat_user_id');
+    if (!userID) {
+      userID = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+      localStorage.setItem('chat_user_id', userID);
+    }
+
+    // Загружаем историю из localStorage
+    let messages = [];
+    const stored = localStorage.getItem('chat_history');
+    if (stored) {
+      try {
+        messages = JSON.parse(stored);
+        if (!Array.isArray(messages)) messages = [];
+      } catch(e) { messages = []; }
+    }
+    let existingIds = new Set(messages.map(m => m.msgId));
+
+    let isOpen = false;
+    let pollInterval = null;
+    let firstLoad = true;
+
+    // ===== Инициализация имени =====
+    function initUserName() {
+      if (userName) {
+        namePrompt.style.display = 'none';
+        inputField.disabled = false;
+        sendBtn.disabled = false;
+        inputField.placeholder = 'Введите сообщение...';
+        return;
+      }
+      namePrompt.style.display = 'block';
+      inputField.disabled = true;
+      sendBtn.disabled = true;
+      inputField.placeholder = 'Сначала укажите имя';
+      nameInput.focus();
+      nameInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          const val = nameInput.value.trim();
+          if (val) {
+            userName = val;
+            localStorage.setItem('chat_user_name', userName);
+            namePrompt.style.display = 'none';
+            inputField.disabled = false;
+            sendBtn.disabled = false;
+            inputField.placeholder = 'Введите сообщение...';
+            inputField.focus();
+          }
+        }
+      });
+    }
+
+    // ===== Отрисовка всех сообщений =====
+    function renderAllMessages() {
+      messagesDiv.innerHTML = '';
+      messages.forEach(msg => {
+        const isOwn = (msg.userID === userID);
+        const div = document.createElement('div');
+        div.className = 'msg' + (isOwn ? ' own' : '');
+        const author = document.createElement('div');
+        author.className = 'author';
+        author.textContent = isOwn ? 'Вы' : (msg.userName || 'Гость');
+        const text = document.createElement('div');
+        text.className = 'text';
+        text.textContent = msg.message || '';
+        const time = document.createElement('div');
+        time.className = 'time';
+        if (msg.timestamp) {
+          const d = new Date(msg.timestamp);
+          time.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        div.appendChild(author);
+        div.appendChild(text);
+        div.appendChild(time);
+        messagesDiv.appendChild(div);
+      });
+      scrollToBottom();
+    }
+
+    // ===== Добавление новых сообщений (без перерисовки всех) =====
+    function appendNewMessages(newMsgs) {
+      let added = 0;
+      newMsgs.forEach(msg => {
+        if (!existingIds.has(msg.msgId)) {
+          messages.push(msg);
+          existingIds.add(msg.msgId);
+          const isOwn = (msg.userID === userID);
+          const div = document.createElement('div');
+          div.className = 'msg' + (isOwn ? ' own' : '');
+          const author = document.createElement('div');
+          author.className = 'author';
+          author.textContent = isOwn ? 'Вы' : (msg.userName || 'Гость');
+          const text = document.createElement('div');
+          text.className = 'text';
+          text.textContent = msg.message || '';
+          const time = document.createElement('div');
+          time.className = 'time';
+          if (msg.timestamp) {
+            const d = new Date(msg.timestamp);
+            time.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          }
+          div.appendChild(author);
+          div.appendChild(text);
+          div.appendChild(time);
+          messagesDiv.appendChild(div);
+          added++;
+        }
+      });
+      if (added > 0) {
+        localStorage.setItem('chat_history', JSON.stringify(messages));
+        scrollToBottom();
+      }
+    }
+
+    function scrollToBottom() {
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    // ===== Загрузка с сервера =====
+    function fetchMessages() {
+      fetch(API_URL)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            console.error('Ошибка загрузки:', data.error);
+            return;
+          }
+          const serverMsgs = data.messages || [];
+          if (firstLoad) {
+            if (serverMsgs.length > 0) {
+              const merged = [];
+              const ids = new Set();
+              serverMsgs.forEach(m => {
+                if (!ids.has(m.msgId)) {
+                  merged.push(m);
+                  ids.add(m.msgId);
+                }
+              });
+              messages.forEach(m => {
+                if (!ids.has(m.msgId)) {
+                  merged.push(m);
+                  ids.add(m.msgId);
+                }
+              });
+              merged.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+              messages = merged;
+              existingIds = ids;
+              localStorage.setItem('chat_history', JSON.stringify(messages));
+              renderAllMessages();
+            } else {
+              renderAllMessages();
+            }
+            firstLoad = false;
+          } else {
+            appendNewMessages(serverMsgs);
+          }
+        })
+        .catch(err => console.error('Ошибка запроса:', err));
+    }
+
+    // ===== Отправка сообщения =====
+    function sendMessage() {
+      const text = inputField.value.trim();
+      if (!text || !userName) return;
+
+      const msgId = userID + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+      const payload = {
+        userID: userID,
+        userName: userName,
+        message: text,
+        msgId: msgId
+      };
+
+      // Оптимистичное добавление
+      const tempMsg = {
+        timestamp: new Date().toISOString(),
+        userID: userID,
+        userName: userName,
+        message: text,
+        msgId: msgId
+      };
+      if (!existingIds.has(msgId)) {
+        messages.push(tempMsg);
+        existingIds.add(msgId);
+        localStorage.setItem('chat_history', JSON.stringify(messages));
+        const div = document.createElement('div');
+        div.className = 'msg own';
+        const author = document.createElement('div');
+        author.className = 'author';
+        author.textContent = 'Вы';
+        const textEl = document.createElement('div');
+        textEl.className = 'text';
+        textEl.textContent = text;
+        const time = document.createElement('div');
+        time.className = 'time';
+        const d = new Date();
+        time.textContent = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        div.appendChild(author);
+        div.appendChild(textEl);
+        div.appendChild(time);
+        messagesDiv.appendChild(div);
+        scrollToBottom();
+      }
+
+      inputField.value = '';
+
+      fetch(API_URL, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          alert('Ошибка отправки: ' + data.error);
+        }
+        setTimeout(fetchMessages, 1000);
+      })
+      .catch(err => {
+        alert('Ошибка соединения: ' + err.message);
+      });
+    }
+
+    // ===== Управление окном =====
+    function openChat() {
+      chatWindow.style.display = 'flex';
+      isOpen = true;
+      toggleBtn.style.display = 'none';
+      firstLoad = true;
+      fetchMessages();
+      if (!pollInterval) {
+        pollInterval = setInterval(fetchMessages, 2000);
+      }
+      if (!userName) {
+        nameInput.focus();
+      } else {
+        inputField.focus();
+      }
+    }
+
+    function closeChat() {
+      chatWindow.style.display = 'none';
+      isOpen = false;
+      toggleBtn.style.display = 'flex';
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+    }
+
+    // ===== События =====
+    toggleBtn.addEventListener('click', openChat);
+    closeBtn.addEventListener('click', closeChat);
+    sendBtn.addEventListener('click', sendMessage);
+    inputField.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    // Инициализация
+    initUserName();
+    console.log('Чат загружен. UserID:', userID);
+  })();
+</script>
+
+    
 </body>
 </html>
