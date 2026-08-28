@@ -27,10 +27,10 @@
 </div>
 
 <script>
-// ===== ВАШ URL (обязательно обновите!) =====
+// ===== НАСТРОЙКИ =====
 const API_URL = 'https://script.google.com/macros/s/AKfycbwYaAYCjDom9xfMIW0JhvF05z3fIHmq9Pfbjs5arIRA-48g7jWHL4G_-RdfeAA6x49s/exec';
 
-// ===== Состояние =====
+// ===== СОСТОЯНИЕ =====
 let userName = localStorage.getItem('chat_user_name') || 'Гость';
 let userID = localStorage.getItem('chat_user_id') || 'user_' + Date.now();
 localStorage.setItem('chat_user_id', userID);
@@ -50,7 +50,7 @@ const errorDiv = document.getElementById('error');
 
 nameInput.value = userName;
 
-// ===== Рендер =====
+// ===== РЕНДЕР =====
 function render() {
   messagesDiv.innerHTML = history.map(m => 
     `<div class="msg"><span class="name">${m.userName}</span> ${m.message} <span class="time">${new Date(m.timestamp).toLocaleTimeString()}</span></div>`
@@ -59,16 +59,21 @@ function render() {
 }
 render();
 
-// ===== Загрузка =====
+// ===== ЗАГРУЗКА С СЕРВЕРА =====
 function load() {
   fetch(API_URL)
-    .then(r => {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
+    .then(response => {
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      return response.json();
     })
     .then(data => {
+      // Проверяем, что data — объект и содержит messages
+      if (typeof data !== 'object' || data === null) throw new Error('Неверный ответ сервера');
       if (data.error) throw new Error(data.error);
-      const newMsgs = data.messages.filter(m => !ids.has(m.msgId));
+      if (!Array.isArray(data.messages)) throw new Error('Ответ не содержит массив messages');
+
+      const serverMsgs = data.messages;
+      const newMsgs = serverMsgs.filter(m => !ids.has(m.msgId));
       if (newMsgs.length) {
         newMsgs.forEach(m => { ids.add(m.msgId); history.push(m); });
         localStorage.setItem('chat_history', JSON.stringify(history));
@@ -76,10 +81,13 @@ function load() {
       }
       errorDiv.textContent = '';
     })
-    .catch(e => errorDiv.textContent = 'Ошибка загрузки: ' + e.message);
+    .catch(err => {
+      errorDiv.textContent = 'Ошибка загрузки: ' + err.message;
+      console.error('load error:', err);
+    });
 }
 
-// ===== Отправка =====
+// ===== ОТПРАВКА =====
 function send() {
   const name = nameInput.value.trim() || 'Гость';
   const text = msgInput.value.trim();
@@ -94,6 +102,7 @@ function send() {
     msgId: msgId
   };
 
+  // Локальное добавление
   history.push(msg);
   ids.add(msgId);
   localStorage.setItem('chat_history', JSON.stringify(history));
@@ -106,19 +115,23 @@ function send() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(msg)
   })
-  .then(r => {
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
+  .then(response => {
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    return response.json();
   })
   .then(data => {
     if (data.error) throw new Error(data.error);
     errorDiv.textContent = 'Отправлено!';
-    load(); // обновить историю с сервера
+    // Обновляем историю с сервера (чтобы получить подтверждение)
+    setTimeout(load, 500);
   })
-  .catch(e => errorDiv.textContent = 'Ошибка отправки: ' + e.message);
+  .catch(err => {
+    errorDiv.textContent = 'Ошибка отправки: ' + err.message;
+    console.error('send error:', err);
+  });
 }
 
-// ===== События =====
+// ===== СОБЫТИЯ =====
 openBtn.onclick = function() {
   chatDiv.style.display = 'block';
   openBtn.style.display = 'none';
