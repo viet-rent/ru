@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ДомКлик — аренда жилья в Паттайе</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <style>
+        /* === ВСЕ СТИЛИ (как в предыдущей версии) === */
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #fff; color: #222; height: 100vh; overflow: hidden; }
+        a { text-decoration: none; color: inherit; }
+        .header { position: sticky; top: 0; z-index: 1000; background: white; padding: 16px 40px; border-bottom: 1px solid #ebebeb; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 24px; font-weight: bold; color: #ff385c; }
+        .logo i { margin-right: 8px; }
+        .header-controls { display: flex; align-items: center; gap: 20px; }
+        .header-controls .city { font-size: 14px; color: #717171; }
+        .header-controls .city i { margin-right: 6px; color: #ff385c; }
+        .main { display: flex; height: calc(100vh - 72px); overflow: hidden; flex-direction: row; }
+        .list-panel { width: 380px; min-width: 380px; overflow-y: auto; padding: 16px 8px 16px 20px; background: #fafafa; border-right: 1px solid #ebebeb; display: flex; flex-direction: column; height: 100%; }
+        .list-panel .results-count { font-size: 14px; color: #717171; margin-bottom: 12px; padding-left: 4px; flex-shrink: 0; }
+        .list-panel .results-count strong { color: #222; }
+        .filters-panel { background: white; border-radius: 12px; padding: 16px; margin-bottom: 16px; border: 1px solid #ebebeb; box-shadow: 0 2px 6px rgba(0,0,0,0.04); flex-shrink: 0; }
+        .filters-panel .filter-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+        .filters-panel .filter-row:last-child { margin-bottom: 0; }
+        .filters-panel label { font-size: 13px; font-weight: 600; color: #717171; margin-right: 4px; }
+        .filters-panel select, .filters-panel input { padding: 6px 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; background: white; flex: 1; min-width: 60px; outline: none; transition: border-color 0.2s; }
+        .filters-panel select:focus, .filters-panel input:focus { border-color: #ff385c; }
+        .filters-panel .filter-price-inputs { display: flex; gap: 8px; flex: 2; }
+        .filters-panel .filter-price-inputs input { width: 70px; flex: 1; }
+        .filters-panel .filter-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+        .filters-panel .btn-filter { padding: 6px 16px; background: #ff385c; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        .filters-panel .btn-filter:hover { background: #e01e4a; }
+        .filters-panel .btn-reset { padding: 6px 16px; background: #f7f7f7; color: #222; border: 1px solid #ddd; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        .filters-panel .btn-reset:hover { background: #ebebeb; }
+        .filters-panel .filter-label { font-size: 13px; font-weight: 600; color: #717171; min-width: 50px; }
+        .list-container-wrapper { flex: 1; overflow: hidden; position: relative; }
+        .list-container-wrapper .list-content { height: 100%; overflow-y: auto; }
+        .list-container-wrapper .list-loader { display: none; text-align: center; padding: 40px 0; color: #717171; }
+        .list-container-wrapper.loading .list-content { display: none; }
+        .list-container-wrapper.loading .list-loader { display: block; }
+        .list-loader i { font-size: 32px; margin-bottom: 12px; display: block; }
+        .list-loader span { font-size: 16px; }
+        .load-more { text-align: center; padding: 16px; color: #717171; font-size: 14px; display: none; flex-shrink: 0; }
+        .load-more.show { display: block; }
+        .load-more i { margin-right: 8px; }
+        .listing-card-link { display: block; text-decoration: none; color: inherit; }
+        .listing-card { display: flex; gap: 12px; background: white; border-radius: 12px; padding: 12px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border: 1px solid #ebebeb; transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s; cursor: pointer; }
+        .listing-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-2px); }
+        .listing-card .image { width: 100px; height: 100px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: #f0f0f0; }
+        .listing-card .image img { width: 100%; height: 100%; object-fit: cover; }
+        .listing-card .info { flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+        .listing-card .info .title { font-size: 15px; font-weight: 500; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .listing-card .info .location { font-size: 13px; color: #717171; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .listing-card .info .price { font-size: 16px; font-weight: 600; color: #222; margin-top: 6px; }
+        .listing-card .info .price span { font-weight: 400; font-size: 13px; color: #717171; }
+        .listing-card .info .guests { font-size: 13px; color: #717171; }
+        .listing-card .info .guests i { margin-right: 4px; }
+        .listing-card.highlighted { border-color: #ff385c; box-shadow: 0 0 0 2px rgba(255,56,92,0.2); }
+        .map-panel { flex: 1; height: 100%; background: #e5e5e5; }
+        #map { width: 100%; height: 100%; }
+        .custom-popup .popup-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+        .custom-popup .popup-price { font-weight: 500; color: #ff385c; }
+        .custom-popup .popup-link { display: inline-block; margin-top: 6px; color: #ff385c; font-weight: 500; text-decoration: underline; }
+        .price-marker { background: white; border-radius: 20px; padding: 4px 12px; border: 2px solid #ff385c; box-shadow: 0 2px 8px rgba(0,0,0,0.15); font-weight: 600; font-size: 14px; color: #222; white-space: nowrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; pointer-events: none; }
+        .marker-cluster { background-color: rgba(255, 56, 92, 0.9); border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.2); width: 48px !important; height: 48px !important; line-height: 48px !important; text-align: center; font-weight: 700; font-size: 14px; color: white; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .marker-cluster div { width: 42px !important; height: 42px !important; line-height: 42px !important; margin: 3px !important; background-color: #ff385c; border-radius: 50%; text-align: center; font-weight: 700; font-size: 13px; color: white; }
+        .marker-cluster span { font-weight: 700; font-size: 13px; color: white; }
+        .marker-cluster-small { background-color: rgba(255, 56, 92, 0.85); }
+        .marker-cluster-medium { background-color: rgba(255, 56, 92, 0.9); }
+        .marker-cluster-large { background-color: rgba(220, 30, 60, 0.95); }
+        .cluster-price { font-size: 10px; opacity: 0.9; }
+        .loading { text-align: center; padding: 40px 0; color: #717171; }
+        .loading i { font-size: 32px; margin-bottom: 12px; display: block; }
+        .no-results { text-align: center; padding: 40px 0; color: #717171; }
+        .no-results i { font-size: 32px; margin-bottom: 12px; display: block; color: #ccc; }
+        .progress-bar { width: 100%; height: 4px; background: #f0f0f0; margin: 0 0 12px 0; border-radius: 2px; overflow: hidden; }
+        .progress-bar .fill { height: 100%; background: #ff385c; width: 0%; transition: width 0.2s; }
+        @media (max-width: 768px) { .main { flex-direction: column; height: auto; overflow: visible; } .list-panel { width: 100%; min-width: unset; height: 65vh; border-right: none; border-bottom: 1px solid #ebebeb; padding: 12px 8px 12px 16px; overflow-y: auto; } .map-panel { height: 35vh; width: 100%; } .header { padding: 12px 16px; flex-wrap: wrap; gap: 8px; } .listing-card .image { width: 80px; height: 80px; } .marker-cluster { width: 40px !important; height: 40px !important; line-height: 40px !important; font-size: 12px; } .marker-cluster div { width: 34px !important; height: 34px !important; line-height: 34px !important; font-size: 11px; } .filters-panel { padding: 12px; } .filters-panel .filter-row { gap: 6px; } .filters-panel select, .filters-panel input { font-size: 12px; padding: 4px 8px; } .list-container-wrapper .list-content { overflow-y: auto; } }
+        @media (max-width: 480px) { .listing-card { flex-direction: column; gap: 8px; } .listing-card .image { width: 100%; height: 140px; } .list-panel { height: 70vh; } .map-panel { height: 30vh; } .header-controls .city { font-size: 12px; } }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <a href="/" class="logo">🏝️🏠PattayaRent</a>
+    <div class="header-controls">
+        <span class="city"><i class="fas fa-map-marker-alt"></i>Паттайя, Таиланд</span>
+    </div>
+</header>
+
+<div class="main">
+    <div class="list-panel" id="listPanel">
+        <div class="filters-panel" id="filtersPanel">
+            <div class="filter-row">
+                <span class="filter-label">Сортировка</span>
+                <select id="sortSelect">
+                    <option value="default">По умолчанию</option>
+                    <option value="price_asc">Цена ↑</option>
+                    <option value="price_desc">Цена ↓</option>
+                </select>
+            </div>
+            <div class="filter-row">
+                <span class="filter-label">Гости</span>
+                <select id="guestsFilter">
+                    <option value="any">Любое</option>
+                    <option value="1">1+</option>
+                    <option value="2">2+</option>
+                    <option value="3">3+</option>
+                    <option value="4">4+</option>
+                    <option value="5">5+</option>
+                    <option value="6">6+</option>
+                    <option value="8">8+</option>
+                    <option value="10">10+</option>
+                </select>
+            </div>
+            <div class="filter-row">
+                <span class="filter-label">Цена</span>
+                <div class="filter-price-inputs">
+                    <input type="number" id="priceMin" placeholder="от" min="0">
+                    <input type="number" id="priceMax" placeholder="до" min="0">
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button class="btn-filter" id="applyFilters">Применить</button>
+                <button class="btn-reset" id="resetFilters">Сбросить</button>
+            </div>
+        </div>
+
+        <div class="results-count" id="resultsCount">Загрузка...</div>
+        <div class="list-container-wrapper" id="listWrapper">
+            <div class="list-content" id="listContainer">
+                <div class="loading"><i class="fas fa-spinner fa-pulse"></i>Загрузка объектов...</div>
+            </div>
+            <div class="list-loader" id="listLoader">
+                <i class="fas fa-spinner fa-pulse"></i>
+                <span>Загрузка объектов...</span>
+            </div>
+        </div>
+        <div class="load-more" id="loadMore"><i class="fas fa-spinner fa-pulse"></i>Загрузка ещё...</div>
+    </div>
+    <div class="map-panel">
+        <div id="map"></div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // === КОНФИГУРАЦИЯ ===
+        const PATTAYA_CENTER = [12.9276, 100.8771];
+        const DEFAULT_ZOOM = 13;
+        const LIST_BATCH_SIZE = 40;
+
+        // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
+        let allListings = [];
+        let filteredListings = [];
+        let map = null;
+        let clusterGroup = null;
+        let markerMap = {};
+        let currentBounds = null;
+        let highlightedIndex = -1;
+        let pendingHighlightIndex = -1;
+        let selectedObjectIndex = -1;
+        let listUpdateTimeout = null;
+        let visibleListings = [];
+        let listPage = 0;
+        let isLoadingMore = false;
+        let isDataLoaded = false;
+        let isUpdatingList = false;
+
+        const listWrapper = document.getElementById('listWrapper');
+        const listContainer = document.getElementById('listContainer');
+        const resultsCount = document.getElementById('resultsCount');
+        const loadMoreEl = document.getElementById('loadMore');
+        const listLoader = document.getElementById('listLoader');
+        const sortSelect = document.getElementById('sortSelect');
+        const guestsFilter = document.getElementById('guestsFilter');
+        const priceMin = document.getElementById('priceMin');
+        const priceMax = document.getElementById('priceMax');
+        const applyBtn = document.getElementById('applyFilters');
+        const resetBtn = document.getElementById('resetFilters');
+
+        // === ФУНКЦИЯ ПРЕОБРАЗОВАНИЯ СЖАТОГО ОБЪЕКТА В ПОЛНЫЙ ===
+        function expandItem(item) {
+            if (Array.isArray(item)) {
+                return item.map(i => expandItem(i));
+            }
+            if (item.title !== undefined) {
+                return item;
+            }
+            return {
+                title: item.t || '',
+                price: item.p || 0,
+                guests: item.g || 0,
+                image: item.i || '',
+                lat: item.x || 0,
+                lng: item.y || 0,
+                url: item.u || '#',
+                city: item.c || '',
+                address: item.a || ''
+            };
+        }
+
+        // === ЗАГРУЗКА ДАННЫХ (автоопределение файла) ===
+        async function loadData() {
+            const files = ['data.json', 'listings.json'];
+            let data = null;
+            let loadedFile = null;
+
+            for (const file of files) {
+                try {
+                    const response = await fetch(file);
+                    if (response.ok) {
+                        data = await response.json();
+                        loadedFile = file;
+                        break;
+                    }
+                } catch (e) {
+                    // Пробуем следующий файл
+                }
+            }
+
+            if (data) {
+                allListings = expandItem(data);
+                filteredListings = [...allListings];
+                isDataLoaded = true;
+                initApp();
+                console.log(`Данные загружены из ${loadedFile}`);
+            } else {
+                console.error('Ошибка загрузки данных: не найден ни data.json, ни listings.json');
+                listContainer.innerHTML = `
+                    <div class="no-results">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Не удалось загрузить данные.<br>Проверьте файлы <strong>data.json</strong> или <strong>listings.json</strong></p>
+                    </div>
+                `;
+                resultsCount.textContent = 'Ошибка загрузки';
+                listWrapper.classList.remove('loading');
+            }
+        }
+
+        // === ИНИЦИАЛИЗАЦИЯ ===
+        function initApp() {
+            if (!allListings.length) {
+                listContainer.innerHTML = `
+                    <div class="no-results">
+                        <i class="fas fa-database"></i>
+                        <p>Нет объектов для отображения.</p>
+                    </div>
+                `;
+                resultsCount.textContent = '0 объектов';
+                listWrapper.classList.remove('loading');
+                return;
+            }
+
+            const progressBar = document.createElement('div');
+            progressBar.className = 'progress-bar';
+            progressBar.innerHTML = '<div class="fill" id="progressFill"></div>';
+            listContainer.prepend(progressBar);
+
+            initMap();
+            applyFiltersAndSort();
+
+            map.on('moveend', function() {
+                clearTimeout(listUpdateTimeout);
+                listUpdateTimeout = setTimeout(() => {
+                    currentBounds = map.getBounds();
+                    startListUpdate();
+                    updateList(false);
+                    if (pendingHighlightIndex !== -1) {
+                        highlightCard(pendingHighlightIndex);
+                        pendingHighlightIndex = -1;
+                    }
+                    finishListUpdate();
+                }, 300);
+            });
+
+            map.on('zoomend', function() {
+                buildClusters();
+                if (pendingHighlightIndex !== -1) {
+                    highlightCard(pendingHighlightIndex);
+                    pendingHighlightIndex = -1;
+                }
+                if (highlightedIndex !== -1) {
+                    setTimeout(() => highlightCard(highlightedIndex), 100);
+                }
+            });
+
+            const listPanel = document.getElementById('listPanel');
+            listPanel.addEventListener('scroll', function() {
+                if (listPanel.scrollTop + listPanel.clientHeight >= listPanel.scrollHeight - 100) {
+                    loadMoreListItems();
+                }
+            });
+
+            applyBtn.addEventListener('click', function() {
+                applyFiltersAndSort();
+                highlightedIndex = -1;
+                pendingHighlightIndex = -1;
+                selectedObjectIndex = -1;
+                buildClusters();
+                startListUpdate();
+                updateList(true);
+                finishListUpdate();
+            });
+
+            resetBtn.addEventListener('click', function() {
+                sortSelect.value = 'default';
+                guestsFilter.value = 'any';
+                priceMin.value = '';
+                priceMax.value = '';
+                applyFiltersAndSort();
+                highlightedIndex = -1;
+                pendingHighlightIndex = -1;
+                selectedObjectIndex = -1;
+                buildClusters();
+                startListUpdate();
+                updateList(true);
+                finishListUpdate();
+            });
+
+            sortSelect.addEventListener('change', function() {
+                applyFiltersAndSort();
+                highlightedIndex = -1;
+                pendingHighlightIndex = -1;
+                selectedObjectIndex = -1;
+                buildClusters();
+                startListUpdate();
+                updateList(true);
+                finishListUpdate();
+            });
+
+            guestsFilter.addEventListener('change', function() {
+                applyFiltersAndSort();
+                highlightedIndex = -1;
+                pendingHighlightIndex = -1;
+                selectedObjectIndex = -1;
+                buildClusters();
+                startListUpdate();
+                updateList(true);
+                finishListUpdate();
+            });
+
+            priceMin.addEventListener('keydown', function(e) { if (e.key === 'Enter') applyBtn.click(); });
+            priceMax.addEventListener('keydown', function(e) { if (e.key === 'Enter') applyBtn.click(); });
+
+            setTimeout(() => {
+                currentBounds = map.getBounds();
+                startListUpdate();
+                buildClusters();
+                updateList(true);
+                document.getElementById('progressFill')?.style.setProperty('width', '100%');
+                finishListUpdate();
+            }, 200);
+        }
+
+        // === ФИЛЬТРАЦИЯ И СОРТИРОВКА ===
+        function applyFiltersAndSort() {
+            let result = [...allListings];
+
+            const guestsVal = guestsFilter.value;
+            if (guestsVal !== 'any') {
+                const minGuests = parseInt(guestsVal);
+                result = result.filter(item => item.guests >= minGuests);
+            }
+
+            const minPrice = parseFloat(priceMin.value);
+            const maxPrice = parseFloat(priceMax.value);
+            if (!isNaN(minPrice)) {
+                result = result.filter(item => item.price >= minPrice);
+            }
+            if (!isNaN(maxPrice)) {
+                result = result.filter(item => item.price <= maxPrice);
+            }
+
+            const sortVal = sortSelect.value;
+            if (sortVal === 'price_asc') {
+                result.sort((a, b) => a.price - b.price);
+            } else if (sortVal === 'price_desc') {
+                result.sort((a, b) => b.price - a.price);
+            }
+
+            filteredListings = result;
+            resultsCount.innerHTML = `Найдено <strong>${filteredListings.length}</strong> объектов`;
+        }
+
+        // === УПРАВЛЕНИЕ ЛОУДЕРОМ ===
+        function startListUpdate() {
+            if (isUpdatingList) return;
+            isUpdatingList = true;
+            listWrapper.classList.add('loading');
+            listContainer.innerHTML = '';
+            loadMoreEl.classList.remove('show');
+        }
+
+        function finishListUpdate() {
+            isUpdatingList = false;
+            listWrapper.classList.remove('loading');
+        }
+
+        // === КАРТА ===
+        function initMap() {
+            map = L.map('map', {
+                center: PATTAYA_CENTER,
+                zoom: DEFAULT_ZOOM,
+                zoomControl: true,
+                fadeAnimation: true,
+                attributionControl: true
+            });
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19,
+                subdomains: 'abc'
+            }).addTo(map);
+        }
+
+        // === ПОСТРОЕНИЕ КЛАСТЕРОВ ===
+        function buildClusters() {
+            if (clusterGroup) {
+                map.removeLayer(clusterGroup);
+                clusterGroup = null;
+            }
+
+            clusterGroup = L.markerClusterGroup({
+                maxClusterRadius: 200,
+                disableClusteringAtZoom: 17,
+                spiderfyOnMaxZoom: false,
+                iconCreateFunction: function(cluster) {
+                    const markers = cluster.getAllChildMarkers();
+                    const count = markers.length;
+                    let minPrice = Infinity;
+                    markers.forEach(m => {
+                        const data = m.options.listingData;
+                        if (data && data.price < minPrice) {
+                            minPrice = data.price;
+                        }
+                    });
+
+                    let sizeClass = 'marker-cluster-small';
+                    if (count > 50) sizeClass = 'marker-cluster-large';
+                    else if (count > 25) sizeClass = 'marker-cluster-medium';
+
+                    const showPrice = map.getZoom() >= 15;
+
+                    let html = `<div class="marker-cluster ${sizeClass}">`;
+                    if (showPrice && minPrice !== Infinity) {
+                        html += `<span>${count}</span><br><span class="cluster-price">от ₽${minPrice}</span>`;
+                    } else {
+                        html += `<span>${count}</span>`;
+                    }
+                    html += `</div>`;
+
+                    return L.divIcon({
+                        html: html,
+                        className: 'marker-cluster',
+                        iconSize: [48, 48],
+                        popupAnchor: [0, -20]
+                    });
+                },
+                polygonOptions: {
+                    color: '#ff385c',
+                    weight: 2,
+                    opacity: 0.6,
+                    fillColor: '#ff385c',
+                    fillOpacity: 0.1
+                }
+            });
+
+            const currentZoom = map.getZoom();
+            const showPrice = currentZoom >= 15;
+
+            const markers = [];
+            filteredListings.forEach((item, index) => {
+                const lat = parseFloat(item.lat);
+                const lng = parseFloat(item.lng);
+                if (isNaN(lat) || isNaN(lng)) return;
+
+                let iconHtml;
+                let iconSize;
+                let popupAnchor;
+
+                if (showPrice) {
+                    iconHtml = `<div class="price-marker">₽${item.price}</div>`;
+                    iconSize = [null, null];
+                    popupAnchor = [0, -10];
+                } else {
+                    iconHtml = `<i class="fas fa-map-marker-alt" style="color:#ff385c; font-size:22px;"></i>`;
+                    iconSize = [22, 22];
+                    popupAnchor = [0, -18];
+                }
+
+                const icon = L.divIcon({
+                    html: iconHtml,
+                    className: 'custom-marker',
+                    iconSize: iconSize,
+                    popupAnchor: popupAnchor
+                });
+
+                const popupContent = `
+                    <div class="custom-popup">
+                        <div class="popup-title">${escapeHtml(item.title)}</div>
+                        <div class="popup-location">${escapeHtml(item.city || '')}${item.address ? ', ' + escapeHtml(item.address) : ''}</div>
+                        <div class="popup-price">₽${item.price} / ночь</div>
+                        <div style="margin-top:6px;">
+                            <i class="fas fa-users"></i> до ${item.guests} гостей
+                        </div>
+                        <a href="${escapeHtml(item.url || '#')}" class="popup-link" target="_blank">Подробнее →</a>
+                    </div>
+                `;
+
+                const marker = L.marker([lat, lng], { icon: icon, listingData: item })
+                    .bindPopup(popupContent);
+
+                marker.on('click', function() {
+                    const idx = filteredListings.indexOf(item);
+                    if (idx !== -1) {
+                        selectedObjectIndex = idx;
+                        pendingHighlightIndex = idx;
+                        highlightCard(idx);
+                    }
+                    map.setView([lat, lng], Math.max(map.getZoom(), 15));
+                });
+
+                markers.push(marker);
+                markerMap[index] = marker;
+            });
+
+            clusterGroup.addLayers(markers);
+            map.addLayer(clusterGroup);
+        }
+
+        // === ОБНОВЛЕНИЕ СПИСКА ===
+        function updateList(forceReset) {
+            if (!map || !isDataLoaded) return;
+            const bounds = map.getBounds();
+            currentBounds = bounds;
+
+            let visible = filteredListings.filter(item => {
+                const lat = parseFloat(item.lat);
+                const lng = parseFloat(item.lng);
+                if (isNaN(lat) || isNaN(lng)) return false;
+                return bounds.contains([lat, lng]);
+            });
+
+            if (selectedObjectIndex !== -1 && visible.length > 0) {
+                const selectedItem = filteredListings[selectedObjectIndex];
+                if (selectedItem) {
+                    const pos = visible.indexOf(selectedItem);
+                    if (pos !== -1) {
+                        visible.splice(pos, 1);
+                        visible.unshift(selectedItem);
+                        const container = listContainer;
+                        setTimeout(() => {
+                            container.scrollTop = 0;
+                        }, 10);
+                    }
+                }
+                selectedObjectIndex = -1;
+            }
+
+            visibleListings = visible;
+            resultsCount.innerHTML = `
+                Показано <strong>${visible.length}</strong> из <strong>${filteredListings.length}</strong> объектов
+            `;
+
+            if (visible.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="no-results">
+                        <i class="fas fa-search"></i>
+                        <p>В этой области нет объектов, соответствующих фильтрам.<br>Переместите карту или измените фильтры.</p>
+                    </div>
+                `;
+                loadMoreEl.classList.remove('show');
+                return;
+            }
+
+            if (forceReset) {
+                listPage = 0;
+                listContainer.innerHTML = '';
+                loadMoreEl.classList.remove('show');
+            }
+
+            if (forceReset || listContainer.children.length === 0) {
+                renderListPortion(0);
+            } else {
+                applyHighlightToCurrentList();
+            }
+        }
+
+        // === ОТРИСОВКА ПОРЦИИ СПИСКА ===
+        function renderListPortion(startIndex) {
+            const total = visibleListings.length;
+            const endIndex = Math.min(startIndex + LIST_BATCH_SIZE, total);
+            if (startIndex >= total) {
+                loadMoreEl.classList.remove('show');
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            for (let i = startIndex; i < endIndex; i++) {
+                const item = visibleListings[i];
+                const originalIndex = filteredListings.indexOf(item);
+                const url = item.url || '#';
+                const card = document.createElement('a');
+                card.href = escapeHtml(url);
+                card.className = 'listing-card-link';
+                card.dataset.index = originalIndex;
+                card.innerHTML = `
+                    <div class="listing-card" data-index="${originalIndex}">
+                        <div class="image">
+                            <img src="${escapeHtml(item.image) || 'https://placehold.co/600x400/eee/ccc?text=Нет+фото'}" alt="${escapeHtml(item.title)}" loading="lazy" width="100" height="100">
+                        </div>
+                        <div class="info">
+                            <div>
+                                <div class="title">${escapeHtml(item.title)}</div>
+                                <div class="location"><i class="fas fa-map-marker-alt" style="font-size:11px;"></i> ${escapeHtml(item.city || '')}${item.address ? ', ' + escapeHtml(item.address) : ''}</div>
+                            </div>
+                            <div>
+                                <div class="price">₽${item.price} <span>/ ночь</span></div>
+                                <div class="guests"><i class="fas fa-users"></i> до ${item.guests} гостей</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                fragment.appendChild(card);
+            }
+
+            listContainer.appendChild(fragment);
+            listPage = endIndex;
+
+            if (endIndex < total) {
+                loadMoreEl.classList.add('show');
+            } else {
+                loadMoreEl.classList.remove('show');
+            }
+
+            applyHighlightToCurrentList();
+        }
+
+        // === ПРИМЕНЕНИЕ ПОДСВЕТКИ ===
+        function applyHighlightToCurrentList() {
+            if (highlightedIndex === -1 && pendingHighlightIndex === -1) return;
+            const targetIndex = pendingHighlightIndex !== -1 ? pendingHighlightIndex : highlightedIndex;
+            if (targetIndex === -1) return;
+
+            if (visibleListings.length > 0 && visibleListings[0] === filteredListings[targetIndex]) {
+                const container = listContainer;
+                setTimeout(() => {
+                    container.scrollTop = 0;
+                }, 10);
+                const card = document.querySelector(`.listing-card[data-index="${targetIndex}"]`);
+                if (card) {
+                    if (highlightedIndex !== -1 && highlightedIndex !== targetIndex) {
+                        const prev = document.querySelector(`.listing-card[data-index="${highlightedIndex}"]`);
+                        if (prev) prev.classList.remove('highlighted');
+                    }
+                    card.classList.add('highlighted');
+                    highlightedIndex = targetIndex;
+                    if (pendingHighlightIndex !== -1) pendingHighlightIndex = -1;
+                }
+                return;
+            }
+
+            const card = document.querySelector(`.listing-card[data-index="${targetIndex}"]`);
+            if (card) {
+                if (highlightedIndex !== -1 && highlightedIndex !== targetIndex) {
+                    const prev = document.querySelector(`.listing-card[data-index="${highlightedIndex}"]`);
+                    if (prev) prev.classList.remove('highlighted');
+                }
+                card.classList.add('highlighted');
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                highlightedIndex = targetIndex;
+                if (pendingHighlightIndex !== -1) pendingHighlightIndex = -1;
+            } else {
+                const item = filteredListings[targetIndex];
+                if (item) {
+                    const pos = visibleListings.indexOf(item);
+                    if (pos !== -1) {
+                        const targetPage = Math.floor(pos / LIST_BATCH_SIZE) + 1;
+                        while (listPage < targetPage) {
+                            renderListPortion(listPage);
+                        }
+                        const newCard = document.querySelector(`.listing-card[data-index="${targetIndex}"]`);
+                        if (newCard) {
+                            if (highlightedIndex !== -1 && highlightedIndex !== targetIndex) {
+                                const prev = document.querySelector(`.listing-card[data-index="${highlightedIndex}"]`);
+                                if (prev) prev.classList.remove('highlighted');
+                            }
+                            newCard.classList.add('highlighted');
+                            newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            highlightedIndex = targetIndex;
+                            if (pendingHighlightIndex !== -1) pendingHighlightIndex = -1;
+                        }
+                    }
+                }
+            }
+        }
+
+        // === ЗАГРУЗКА СЛЕДУЮЩЕЙ ПОРЦИИ ===
+        function loadMoreListItems() {
+            if (isLoadingMore) return;
+            if (listPage >= visibleListings.length) {
+                loadMoreEl.classList.remove('show');
+                return;
+            }
+            isLoadingMore = true;
+            loadMoreEl.classList.add('show');
+            setTimeout(() => {
+                renderListPortion(listPage);
+                isLoadingMore = false;
+            }, 100);
+        }
+
+        // === ПОДСВЕТКА КАРТОЧКИ ===
+        function highlightCard(index) {
+            if (highlightedIndex !== -1 && highlightedIndex !== index) {
+                const prev = document.querySelector(`.listing-card[data-index="${highlightedIndex}"]`);
+                if (prev) prev.classList.remove('highlighted');
+            }
+            highlightedIndex = index;
+            applyHighlightToCurrentList();
+        }
+
+        // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // === ЗАПУСК ===
+        loadData();
+    })();
+</script>
+
+</body>
+</html>

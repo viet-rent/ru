@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Оформление бронирования</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background:#f7f7f7;
+            color:#222;
+            padding:20px;
+        }
+        .container {
+            max-width:900px;
+            margin:0 auto;
+            display:grid;
+            grid-template-columns:1fr 380px;
+            gap:40px;
+            background:white;
+            border-radius:16px;
+            padding:40px;
+            box-shadow:0 6px 16px rgba(0,0,0,0.08);
+        }
+        .back-link {
+            display:inline-block;
+            margin-bottom:20px;
+            color:#ff385c;
+            text-decoration:none;
+            font-weight:500;
+        }
+        .back-link i { margin-right:8px; }
+        h1 { font-size:24px; font-weight:500; margin-bottom:8px; }
+        .order-summary {
+            border:1px solid #ebebeb;
+            border-radius:16px;
+            padding:20px;
+            background:#fafafa;
+        }
+        .order-summary img {
+            width:100%;
+            height:180px;
+            object-fit:cover;
+            border-radius:12px;
+            margin-bottom:12px;
+        }
+        .order-summary .detail-row {
+            display:flex;
+            justify-content:space-between;
+            padding:8px 0;
+            border-bottom:1px solid #ebebeb;
+        }
+        .order-summary .detail-row:last-child {
+            border-bottom:none;
+            font-weight:600;
+            font-size:18px;
+            padding-top:12px;
+        }
+        .detail-label { color:#717171; }
+        .detail-value { font-weight:500; }
+        .info-note {
+            background:#f0f7ff;
+            border-radius:10px;
+            padding:12px 16px;
+            font-size:14px;
+            color:#1a56db;
+            margin-top:12px;
+            border-left:4px solid #1a56db;
+        }
+        .info-note i {
+            margin-right:8px;
+        }
+        
+        .form-group {
+            margin-bottom:20px;
+        }
+        .form-group label {
+            display:block;
+            font-weight:600;
+            font-size:14px;
+            margin-bottom:6px;
+            color:#222;
+        }
+        .form-group input,
+        .form-group textarea {
+            width:100%;
+            padding:12px 16px;
+            border:1px solid #ddd;
+            border-radius:12px;
+            font-size:15px;
+            transition:border-color 0.2s, box-shadow 0.2s;
+            background:white;
+        }
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline:none;
+            border-color:#ff385c;
+            box-shadow:0 0 0 2px rgba(255,56,92,0.2);
+        }
+        .form-group textarea { min-height:80px; resize:vertical; }
+        .form-row {
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:20px;
+        }
+        .pay-btn {
+            width:100%;
+            padding:16px;
+            background:#ff385c;
+            color:white;
+            border:none;
+            border-radius:12px;
+            font-size:18px;
+            font-weight:600;
+            cursor:pointer;
+            transition:background 0.2s;
+            margin-top:12px;
+        }
+        .pay-btn:hover { background:#e01e4a; }
+        .pay-btn:disabled {
+            opacity:0.6;
+            cursor:not-allowed;
+        }
+        .error-msg {
+            color:#dc2626;
+            font-size:14px;
+            margin-top:4px;
+        }
+        @media (max-width:768px) {
+            .container {
+                grid-template-columns:1fr;
+                padding:20px;
+            }
+            .form-row { grid-template-columns:1fr; }
+        }
+
+        /* === ПРЕЛОУДЕР === */
+        .preloader-overlay {
+            display:none;
+            position:fixed;
+            top:0;
+            left:0;
+            right:0;
+            bottom:0;
+            background:rgba(255,255,255,0.85);
+            backdrop-filter:blur(4px);
+            z-index:999999;
+            align-items:center;
+            justify-content:center;
+            flex-direction:column;
+        }
+        .preloader-overlay.show {
+            display:flex;
+        }
+        .preloader-spinner {
+            width:64px;
+            height:64px;
+            border:4px solid #f0f0f0;
+            border-top:4px solid #ff385c;
+            border-radius:50%;
+            animation: spin 0.8s linear infinite;
+        }
+        .preloader-logo {
+            font-size:24px;
+            font-weight:bold;
+            color:#ff385c;
+            margin-bottom:20px;
+        }
+        .preloader-text {
+            color:#717171;
+            font-size:16px;
+            margin-top:16px;
+            letter-spacing:0.3px;
+        }
+        @keyframes spin {
+            0% { transform:rotate(0deg); }
+            100% { transform:rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <a href="javascript:history.back()" class="back-link"><i class="fas fa-arrow-left"></i> Назад к выбору</a>
+    <div class="container" id="app">
+        <div>
+            <h1>Оформление бронирования</h1>
+            <p style="color:#717171; margin-bottom:24px;">Заполните данные для оплаты</p>
+            
+            <form id="checkoutForm" method="POST" action="https://payweb.click/api/request/">
+                <input type="hidden" name="merchant_order_id" id="merchantOrderId">
+                <input type="hidden" name="amount" id="amountField">
+                <input type="hidden" name="use_card_payment" value="RUB">
+                <input type="hidden" name="success_url" value="https://ваш-домен/success.html">
+                <input type="hidden" name="fail_url" value="https://ваш-домен/fail.html">
+                <input type="hidden" name="notice_url" value="https://script.google.com/macros/s/AKfycbwhp6cuv7hKzSTcFY0tB8QwPrw4y_oWwpvBjRf1o0uUReggq12ckyDZ-xbwfoxbqak/exec">
+                <input type="hidden" name="api_key" value="e71366079d95b04228fc6482c503a983b99da2e7b17dd6c56780074d0f7e63a2">
+                <input type="hidden" name="description" id="descriptionField">
+                <input type="hidden" name="customer_name" id="nameField">
+                <input type="hidden" name="customer_email" id="emailField">
+                <input type="hidden" name="customer_phone" id="phoneField">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName">Имя</label>
+                        <input type="text" id="firstName" placeholder="Иван" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Фамилия</label>
+                        <input type="text" id="lastName" placeholder="Иванов" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="patronymic">Отчество (необязательно)</label>
+                    <input type="text" id="patronymic" placeholder="Иванович">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="example@mail.ru" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Телефон</label>
+                    <input type="tel" id="phone" placeholder="+7 (999) 123-45-67" required>
+                </div>
+                <div class="form-group">
+                    <label for="comment">Комментарий к бронированию (необязательно)</label>
+                    <textarea id="comment" placeholder="Дополнительные пожелания..."></textarea>
+                </div>
+                <button type="submit" class="pay-btn" id="payBtn">Оплатить</button>
+                <div id="formError" class="error-msg" style="margin-top:12px;"></div>
+            </form>
+        </div>
+
+        <div class="order-summary" id="orderSummary">
+            <div style="text-align:center; padding:40px 0; color:#717171;">
+                <i class="fas fa-spinner fa-spin" style="font-size:32px;"></i>
+                <p style="margin-top:12px;">Загрузка данных...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ПРЕЛОУДЕР -->
+    <div class="preloader-overlay" id="preloaderOverlay">
+        <div class="preloader-logo">🏝️🏠PattayaRent</div>
+        <div class="preloader-spinner"></div>
+        <div class="preloader-text" id="preloaderText">Перенаправление на оплату...</div>
+    </div>
+
+    <script>
+        (function() {
+            // === КОНФИГУРАЦИЯ ===
+            const PAYMENT_CONFIG = {
+                API_URL: "https://payweb.click/api/request/",
+                API_KEY: "e71366079d95b04228fc6482c503a983b99da2e7b17dd6c56780074d0f7e63a2",
+                SUCCESS_URL: "https://ваш-домен/success.html",
+                FAIL_URL: "https://ваш-домен/fail.html",
+                NOTICE_URL: "https://script.google.com/macros/s/AKfycbwhp6cuv7hKzSTcFY0tB8QwPrw4y_oWwpvBjRf1o0uUReggq12ckyDZ-xbwfoxbqak/exec",
+                MIN_ID: 13577888,
+                MAX_ID: 99273812,
+                DISCOUNT_MULTIPLIER: 0.95,
+                MAX_PAYMENT: 99000 // лимит для оплаты
+            };
+
+            function generateMerchantOrderId() {
+                return Math.floor(Math.random() * (PAYMENT_CONFIG.MAX_ID - PAYMENT_CONFIG.MIN_ID + 1)) + PAYMENT_CONFIG.MIN_ID;
+            }
+
+            // === Получаем данные из localStorage ===
+            let bookingData = null;
+            try {
+                const raw = localStorage.getItem('bookingData');
+                if (raw) bookingData = JSON.parse(raw);
+            } catch(e) {}
+
+            const summaryEl = document.getElementById('orderSummary');
+            const payBtn = document.getElementById('payBtn');
+            const form = document.getElementById('checkoutForm');
+            const errorEl = document.getElementById('formError');
+            const preloader = document.getElementById('preloaderOverlay');
+            const preloaderText = document.getElementById('preloaderText');
+
+            // === Отображаем сводку ===
+            function renderSummary(data) {
+                if (!data) {
+                    summaryEl.innerHTML = `
+                        <div style="text-align:center; padding:40px 0; color:#717171;">
+                            <i class="fas fa-exclamation-triangle" style="font-size:32px;"></i>
+                            <p style="margin-top:12px;">Данные о бронировании не найдены.<br>Вернитесь на страницу объекта и выберите даты.</p>
+                            <a href="javascript:history.back()" style="display:inline-block; margin-top:16px; color:#ff385c; text-decoration:underline;">← Назад</a>
+                        </div>
+                    `;
+                    payBtn.disabled = true;
+                    return;
+                }
+
+                const nights = data.nights || 1;
+                const total = data.totalPrice || (data.pricePerNight * nights);
+                let finalTotal = Math.round(total * PAYMENT_CONFIG.DISCOUNT_MULTIPLIER);
+                let paymentAmount = finalTotal;
+
+                // Проверка на превышение лимита
+                let limitMessage = '';
+                if (paymentAmount > PAYMENT_CONFIG.MAX_PAYMENT) {
+                    paymentAmount = PAYMENT_CONFIG.MAX_PAYMENT;
+                    limitMessage = `
+                        <div class="info-note">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Сумма бронирования превышает 99 000 ₽. Для подтверждения достаточно внести <strong>${paymentAmount.toLocaleString()} ₽</strong>. Остаток вы оплатите по прибытии.</span>
+                        </div>
+                    `;
+                }
+
+                // Сохраняем для отправки
+                window._paymentAmount = paymentAmount;
+                window._totalDisplay = finalTotal;
+
+                const guestParts = [];
+                if (data.adults) guestParts.push(`${data.adults} взрослых`);
+                if (data.children) guestParts.push(`${data.children} детей`);
+                if (data.infants) guestParts.push(`${data.infants} младенцев`);
+                if (data.pets) guestParts.push('🐾 с питомцами');
+                const guestString = guestParts.join(', ') || '1 гость';
+
+                summaryEl.innerHTML = `
+                    <img src="${data.image || 'https://placehold.co/600x400/eee/ccc?text=Нет+фото'}" alt="${data.title}">
+                    <h3 style="font-size:18px; margin-bottom:12px;">${data.title}</h3>
+                    <div class="detail-row">
+                        <span class="detail-label">Даты</span>
+                        <span class="detail-value">${formatDate(data.checkIn)} – ${formatDate(data.checkOut)}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Ночей</span>
+                        <span class="detail-value">${nights}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Гости</span>
+                        <span class="detail-value">${guestString}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Цена за ночь</span>
+                        <span class="detail-value">₽${data.pricePerNight}</span>
+                    </div>
+                    <div class="detail-row" style="font-size:20px; padding-top:12px;">
+                        <span class="detail-label">Итого к оплате</span>
+                        <span class="detail-value">₽${total}</span>
+                    </div>
+                    ${limitMessage}
+                `;
+                payBtn.disabled = false;
+            }
+
+            function formatDate(ymd) {
+                if (!ymd) return '';
+                const parts = ymd.split('-');
+                if (parts.length !== 3) return ymd;
+                return `${parts[2]}.${parts[1]}.${parts[0]}`;
+            }
+
+            renderSummary(bookingData);
+
+            // === Обработка отправки формы ===
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const firstName = document.getElementById('firstName').value.trim();
+                const lastName = document.getElementById('lastName').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const phone = document.getElementById('phone').value.trim();
+
+                if (!firstName || !lastName || !email || !phone) {
+                    errorEl.textContent = 'Пожалуйста, заполните все обязательные поля (Имя, Фамилия, Email, Телефон).';
+                    return;
+                }
+                if (!email.includes('@')) {
+                    errorEl.textContent = 'Введите корректный email.';
+                    return;
+                }
+                if (phone.length < 6) {
+                    errorEl.textContent = 'Введите корректный номер телефона.';
+                    return;
+                }
+
+                if (!bookingData) {
+                    errorEl.textContent = 'Данные бронирования отсутствуют. Вернитесь на страницу объекта.';
+                    return;
+                }
+
+                // Сохраняем данные пользователя
+                const userData = {
+                    firstName: firstName,
+                    lastName: lastName,
+                    patronymic: document.getElementById('patronymic').value.trim(),
+                    email: email,
+                    phone: phone,
+                    comment: document.getElementById('comment').value.trim()
+                };
+                bookingData.guest = userData;
+                localStorage.setItem('bookingData', JSON.stringify(bookingData));
+                localStorage.setItem('lastBooking', JSON.stringify(bookingData));
+
+                const merchantOrderId = generateMerchantOrderId();
+                // Отправляем сумму с учетом лимита
+                const amountToSend = window._paymentAmount || Math.round(bookingData.totalPrice * PAYMENT_CONFIG.DISCOUNT_MULTIPLIER);
+                const description = `${bookingData.title} (${formatDate(bookingData.checkIn)} – ${formatDate(bookingData.checkOut)})`;
+
+                document.getElementById('merchantOrderId').value = merchantOrderId;
+                document.getElementById('amountField').value = amountToSend;
+                document.getElementById('descriptionField').value = description;
+                document.getElementById('nameField').value = `${firstName} ${lastName}`;
+                document.getElementById('emailField').value = email;
+                document.getElementById('phoneField').value = phone;
+
+                preloader.classList.add('show');
+                preloaderText.textContent = 'Перенаправление на оплату...';
+                payBtn.disabled = true;
+
+                setTimeout(() => {
+                    form.submit();
+                }, 300);
+            });
+
+            // Таймаут 120 сек
+            setTimeout(() => {
+                if (preloader.classList.contains('show')) {
+                    preloader.classList.remove('show');
+                    errorEl.textContent = 'Сервис оплаты не отвечает. Попробуйте позже.';
+                    payBtn.disabled = false;
+                }
+            }, 120000);
+        })();
+    </script>
+</body>
+</html>

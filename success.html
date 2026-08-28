@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Бронирование подтверждено</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f7f7f7;
+            color: #222;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 700px;
+            width: 100%;
+            background: white;
+            border-radius: 24px;
+            padding: 40px 32px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 24px;
+            color: #ff385c;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 15px;
+            transition: color 0.2s;
+        }
+        .back-link i {
+            margin-right: 8px;
+        }
+        .back-link:hover {
+            color: #e01e4a;
+        }
+
+        .success-icon {
+            display: inline-block;
+            width: 80px;
+            height: 80px;
+            background: #e6f7f0;
+            border-radius: 50%;
+            line-height: 80px;
+            font-size: 40px;
+            color: #00a699;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #222;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #717171;
+            margin-bottom: 32px;
+        }
+
+        .booking-card {
+            background: #fafafa;
+            border-radius: 16px;
+            padding: 24px;
+            text-align: left;
+            margin-bottom: 24px;
+            border: 1px solid #ebebeb;
+        }
+
+        .booking-card .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #ebebeb;
+        }
+        .booking-card .row:last-child {
+            border-bottom: none;
+        }
+
+        .booking-card .label {
+            color: #717171;
+            font-weight: 400;
+        }
+        .booking-card .value {
+            font-weight: 500;
+            color: #222;
+        }
+
+        .guest-details {
+            background: #fafafa;
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+            border: 1px solid #ebebeb;
+        }
+
+        .guest-details h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #222;
+            margin-bottom: 12px;
+        }
+
+        .guest-details .detail {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 15px;
+        }
+
+        .guest-details .detail .label {
+            color: #717171;
+        }
+        .guest-details .detail .value {
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            display: inline-block;
+            padding: 14px 40px;
+            background: #ff385c;
+            color: white;
+            border: none;
+            border-radius: 40px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+        .btn-primary:hover {
+            background: #e01e4a;
+        }
+
+        .empty-state {
+            padding: 40px 20px;
+        }
+        .empty-state i {
+            font-size: 48px;
+            color: #ddd;
+            margin-bottom: 16px;
+        }
+        .empty-state h2 {
+            font-size: 22px;
+            font-weight: 500;
+            color: #222;
+            margin-bottom: 8px;
+        }
+        .empty-state p {
+            color: #717171;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 24px 16px;
+            }
+            .booking-card .row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+            .guest-details .detail {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="successContainer">
+        <!-- Динамически заполняется JS -->
+    </div>
+
+    <script>
+        (function() {
+            // === 1. Получаем данные из localStorage ===
+            let bookingData = null;
+            try {
+                // сначала пробуем lastBooking (сохранённое после оплаты)
+                const lastRaw = localStorage.getItem('lastBooking');
+                if (lastRaw) {
+                    bookingData = JSON.parse(lastRaw);
+                } else {
+                    // если нет, пробуем bookingData (то, что было до оплаты)
+                    const raw = localStorage.getItem('bookingData');
+                    if (raw) bookingData = JSON.parse(raw);
+                }
+            } catch(e) {}
+
+            const container = document.getElementById('successContainer');
+
+            // === 2. Если данных нет — показываем заглушку ===
+            if (!bookingData) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <h2>Бронирование не найдено</h2>
+                        <p>Возможно, вы ещё не завершили оплату или вернулись по прямой ссылке.</p>
+                        <a href="/" class="btn-primary">Вернуться на главную</a>
+                    </div>
+                `;
+                return;
+            }
+
+            // === 3. Извлекаем данные ===
+            const title = bookingData.title || 'Жильё';
+            const image = bookingData.image || 'https://placehold.co/600x400/eee/ccc?text=Нет+фото';
+            const checkIn = bookingData.checkIn ? formatDate(bookingData.checkIn) : '—';
+            const checkOut = bookingData.checkOut ? formatDate(bookingData.checkOut) : '—';
+            const nights = bookingData.nights || 1;
+            const total = bookingData.totalPrice || (bookingData.pricePerNight * nights);
+            const pricePerNight = bookingData.pricePerNight || 0;
+
+            // Данные пользователя (из guest)
+            const guest = bookingData.guest || {};
+            const firstName = guest.firstName || 'Гость';
+            const lastName = guest.lastName || '';
+            const fullName = (firstName + ' ' + lastName).trim() || 'Гость';
+            const email = guest.email || 'не указан';
+            const phone = guest.phone || 'не указан';
+            const comment = guest.comment || '';
+
+            // Гости
+            const adults = bookingData.adults || 0;
+            const children = bookingData.children || 0;
+            const infants = bookingData.infants || 0;
+            const pets = bookingData.pets || false;
+
+            let guestParts = [];
+            if (adults) guestParts.push(`${adults} взрослых`);
+            if (children) guestParts.push(`${children} детей`);
+            if (infants) guestParts.push(`${infants} младенцев`);
+            if (pets) guestParts.push('🐾 с питомцами');
+            const guestString = guestParts.length ? guestParts.join(', ') : '1 гость';
+
+            // === 4. Формируем HTML ===
+            container.innerHTML = `
+                <div class="success-icon"><i class="fas fa-check"></i></div>
+                <h1>Бронирование подтверждено!</h1>
+                <p class="subtitle">Спасибо, ${fullName}! Ваше бронирование успешно оплачено.</p>
+
+                <div class="booking-card">
+                    <div style="display:flex; gap:16px; margin-bottom:16px;">
+                        <img src="${image}" alt="${title}" style="width:100px; height:100px; object-fit:cover; border-radius:12px; flex-shrink:0;">
+                        <div style="text-align:left;">
+                            <h3 style="font-size:18px; font-weight:500; margin-bottom:4px;">${title}</h3>
+                            <div style="color:#717171; font-size:14px;">${checkIn} – ${checkOut}</div>
+                            <div style="color:#717171; font-size:14px;">${nights} ночей</div>
+                        </div>
+                    </div>
+                    <div class="row"><span class="label">Даты</span><span class="value">${checkIn} – ${checkOut}</span></div>
+                    <div class="row"><span class="label">Ночей</span><span class="value">${nights}</span></div>
+                    <div class="row"><span class="label">Гости</span><span class="value">${guestString}</span></div>
+                    <div class="row"><span class="label">Цена за ночь</span><span class="value">₽${pricePerNight}</span></div>
+                    <div class="row" style="font-weight:600; font-size:18px; padding-top:12px;">
+                        <span class="label">Итого</span>
+                        <span class="value">₽${total}</span>
+                    </div>
+                </div>
+
+                <div class="guest-details">
+                    <h3><i class="fas fa-user" style="margin-right:8px;"></i>Данные гостя</h3>
+                    <div class="detail"><span class="label">Имя</span><span class="value">${fullName}</span></div>
+                    <div class="detail"><span class="label">Email</span><span class="value">${email}</span></div>
+                    <div class="detail"><span class="label">Телефон</span><span class="value">${phone}</span></div>
+                    ${comment ? `<div class="detail"><span class="label">Комментарий</span><span class="value">${comment}</span></div>` : ''}
+                </div>
+
+                <a href="/" class="btn-primary">Вернуться на главную</a>
+                <div style="margin-top:16px; font-size:14px; color:#717171;">
+                    <i class="fas fa-envelope" style="margin-right:4px;"></i>
+                    Детали бронирования отправлены на ${email}
+                </div>
+            `;
+
+            // === 5. Вспомогательные функции ===
+            function formatDate(ymd) {
+                if (!ymd) return '';
+                const parts = ymd.split('-');
+                if (parts.length !== 3) return ymd;
+                return `${parts[2]}.${parts[1]}.${parts[0]}`;
+            }
+        })();
+    </script>
+
+</body>
+</html>
