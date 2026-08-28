@@ -740,163 +740,35 @@
     })();
 </script>
 
+
+
+
+
+
 <style>
-  /* === Стили виджета === */
-  #chat-toggle {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: #1a73e8;
-    color: #fff;
-    font-size: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    z-index: 1000;
-    transition: 0.2s;
-    border: none;
-    user-select: none;
-  }
-  #chat-toggle:hover {
-    transform: scale(1.05);
-  }
-  #chat-window {
-    position: fixed;
-    bottom: 90px;
-    right: 20px;
-    width: 340px;
-    max-height: 480px;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-    display: none;
-    flex-direction: column;
-    z-index: 1001;
-    font-family: Arial, sans-serif;
-    overflow: hidden;
-    border: 1px solid #e0e0e0;
-  }
-  #chat-header {
-    background: #1a73e8;
-    color: #fff;
-    padding: 14px 18px;
-    font-weight: bold;
-    font-size: 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: default;
-  }
-  #chat-close {
-    background: none;
-    border: none;
-    color: #fff;
-    font-size: 20px;
-    cursor: pointer;
-    padding: 0 4px;
-  }
-  #chat-messages {
-    flex: 1;
-    padding: 12px 16px;
-    overflow-y: auto;
-    background: #f9f9f9;
-    min-height: 200px;
-    max-height: 340px;
-    font-size: 14px;
-    line-height: 1.5;
-  }
-  .msg {
-    margin-bottom: 10px;
-    display: flex;
-    flex-direction: column;
-  }
-  .msg .author {
-    font-weight: 600;
-    color: #333;
-    font-size: 12px;
-    margin-bottom: 2px;
-  }
-  .msg .text {
-    background: #e9ecef;
-    padding: 8px 12px;
-    border-radius: 18px;
-    display: inline-block;
-    max-width: 80%;
-    word-wrap: break-word;
-  }
-  .msg.own .text {
-    background: #d2e3fc;
-    align-self: flex-end;
-  }
-  .msg.own {
-    align-items: flex-end;
-  }
-  .msg .time {
-    font-size: 10px;
-    color: #888;
-    margin-top: 2px;
-  }
-  #chat-input-area {
-    display: flex;
-    padding: 10px 12px;
-    border-top: 1px solid #ddd;
-    background: #fff;
-  }
-  #chat-input {
-    flex: 1;
-    border: 1px solid #ccc;
-    border-radius: 20px;
-    padding: 8px 14px;
-    outline: none;
-    font-size: 14px;
-  }
-  #chat-input:focus {
-    border-color: #1a73e8;
-  }
-  #chat-send {
-    background: #1a73e8;
-    border: none;
-    color: #fff;
-    padding: 8px 18px;
-    border-radius: 20px;
-    margin-left: 8px;
-    cursor: pointer;
-    font-weight: bold;
-  }
-  #chat-send:hover {
-    background: #1557b0;
-  }
-  #chat-name-prompt {
-    padding: 16px;
-    background: #fff;
-    border-bottom: 1px solid #eee;
-    display: none;
-  }
-  #chat-name-prompt input {
-    width: 100%;
-    padding: 6px 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 14px;
-    box-sizing: border-box;
-  }
-  @media (max-width: 480px) {
-    #chat-window {
-      width: 300px;
-      right: 10px;
-      bottom: 80px;
-    }
-  }
+  /* Стили остаются как в предыдущем коде – я их сократил для экономии места, но вы можете вставить свои */
+  #chat-toggle { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: #1a73e8; color: #fff; font-size: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 1000; border: none; user-select: none; }
+  #chat-toggle:hover { transform: scale(1.05); }
+  #chat-window { position: fixed; bottom: 90px; right: 20px; width: 340px; max-height: 480px; background: #fff; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); display: none; flex-direction: column; z-index: 1001; font-family: Arial, sans-serif; overflow: hidden; border: 1px solid #e0e0e0; }
+  #chat-header { background: #1a73e8; color: #fff; padding: 14px 18px; font-weight: bold; display: flex; justify-content: space-between; }
+  #chat-close { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; }
+  #chat-messages { flex: 1; padding: 12px 16px; overflow-y: auto; background: #f9f9f9; min-height: 200px; max-height: 340px; font-size: 14px; }
+  .msg { margin-bottom: 10px; display: flex; flex-direction: column; }
+  .msg .author { font-weight: 600; font-size: 12px; }
+  .msg .text { background: #e9ecef; padding: 8px 12px; border-radius: 18px; display: inline-block; max-width: 80%; word-wrap: break-word; }
+  .msg.own .text { background: #d2e3fc; align-self: flex-end; }
+  .msg.own { align-items: flex-end; }
+  .msg .time { font-size: 10px; color: #888; }
+  #chat-input-area { display: flex; padding: 10px 12px; border-top: 1px solid #ddd; background: #fff; }
+  #chat-input { flex: 1; border: 1px solid #ccc; border-radius: 20px; padding: 8px 14px; outline: none; }
+  #chat-send { background: #1a73e8; border: none; color: #fff; padding: 8px 18px; border-radius: 20px; margin-left: 8px; cursor: pointer; }
+  #chat-name-prompt { padding: 16px; background: #fff; border-bottom: 1px solid #eee; display: none; }
+  #chat-name-prompt input { width: 100%; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; }
+  .chat-error { color: #d32f2f; background: #ffebee; padding: 8px 12px; border-radius: 4px; margin: 8px 16px; font-size: 13px; display: none; }
+  @media (max-width: 480px) { #chat-window { width: 300px; right: 10px; bottom: 80px; } }
 </style>
 
-<!-- HTML виджета -->
 <div id="chat-toggle" title="Открыть чат">💬</div>
-
 <div id="chat-window">
   <div id="chat-header">
     <span>💬 Чат поддержки</span>
@@ -906,6 +778,7 @@
     <input type="text" id="chat-name-input" placeholder="Введите ваше имя..." maxlength="30">
   </div>
   <div id="chat-messages"></div>
+  <div id="chat-error" class="chat-error"></div>
   <div id="chat-input-area">
     <input type="text" id="chat-input" placeholder="Напишите сообщение..." disabled>
     <button id="chat-send" disabled>Отправить</button>
@@ -917,9 +790,9 @@
     'use strict';
 
     // ===== НАСТРОЙКИ =====
-    const API_URL = 'https://script.google.com/macros/s/AKfycbwdhQaKO2hYxQSU2LxusIKxraR-rwdUaIOp0z8ufT0_-L_Ek_CgSHvcQXS4JYqZFqEGRw/exec'; // например, https://script.google.com/macros/s/.../exec
+    const API_URL = 'ЗАМЕНИТЕ_НА_ВАШ_URL_ВЕБ_ПРИЛОЖЕНИЯ'; // обязательно замените!
 
-    // ===== DOM-элементы =====
+    // ===== DOM =====
     const toggleBtn = document.getElementById('chat-toggle');
     const chatWindow = document.getElementById('chat-window');
     const closeBtn = document.getElementById('chat-close');
@@ -928,6 +801,7 @@
     const sendBtn = document.getElementById('chat-send');
     const namePrompt = document.getElementById('chat-name-prompt');
     const nameInput = document.getElementById('chat-name-input');
+    const errorDiv = document.getElementById('chat-error');
 
     // ===== Состояние =====
     let userName = localStorage.getItem('chat_user_name') || '';
@@ -937,7 +811,6 @@
       localStorage.setItem('chat_user_id', userID);
     }
 
-    // Загружаем историю из localStorage
     let messages = [];
     const stored = localStorage.getItem('chat_history');
     if (stored) {
@@ -951,6 +824,15 @@
     let isOpen = false;
     let pollInterval = null;
     let firstLoad = true;
+
+    // ===== Вспомогательные функции =====
+    function showError(text) {
+      errorDiv.textContent = text;
+      errorDiv.style.display = 'block';
+      setTimeout(() => { errorDiv.style.display = 'none'; }, 5000);
+    }
+
+    function hideError() { errorDiv.style.display = 'none'; }
 
     // ===== Инициализация имени =====
     function initUserName() {
@@ -982,7 +864,7 @@
       });
     }
 
-    // ===== Отрисовка всех сообщений =====
+    // ===== Отрисовка =====
     function renderAllMessages() {
       messagesDiv.innerHTML = '';
       messages.forEach(msg => {
@@ -1009,7 +891,6 @@
       scrollToBottom();
     }
 
-    // ===== Добавление новых сообщений (без перерисовки всех) =====
     function appendNewMessages(newMsgs) {
       let added = 0;
       newMsgs.forEach(msg => {
@@ -1048,49 +929,65 @@
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
-    // ===== Загрузка с сервера =====
+    // ===== Запросы к серверу =====
     function fetchMessages() {
-      fetch(API_URL)
-        .then(res => res.json())
-        .then(data => {
-          if (data.error) {
-            console.error('Ошибка загрузки:', data.error);
-            return;
-          }
-          const serverMsgs = data.messages || [];
-          if (firstLoad) {
-            if (serverMsgs.length > 0) {
-              const merged = [];
-              const ids = new Set();
-              serverMsgs.forEach(m => {
-                if (!ids.has(m.msgId)) {
-                  merged.push(m);
-                  ids.add(m.msgId);
-                }
-              });
-              messages.forEach(m => {
-                if (!ids.has(m.msgId)) {
-                  merged.push(m);
-                  ids.add(m.msgId);
-                }
-              });
-              merged.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-              messages = merged;
-              existingIds = ids;
-              localStorage.setItem('chat_history', JSON.stringify(messages));
-              renderAllMessages();
-            } else {
-              renderAllMessages();
-            }
-            firstLoad = false;
+      console.log('Fetching messages from:', API_URL);
+      hideError();
+
+      fetch(API_URL, {
+        method: 'GET',
+        mode: 'cors',
+        cache: 'no-cache',
+        credentials: 'omit'
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status} ${response.statusText}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.error) {
+          showError('Ошибка сервера: ' + data.error);
+          console.error('Server error:', data.error);
+          return;
+        }
+        const serverMsgs = data.messages || [];
+        if (firstLoad) {
+          if (serverMsgs.length > 0) {
+            const merged = [];
+            const ids = new Set();
+            serverMsgs.forEach(m => {
+              if (!ids.has(m.msgId)) {
+                merged.push(m);
+                ids.add(m.msgId);
+              }
+            });
+            messages.forEach(m => {
+              if (!ids.has(m.msgId)) {
+                merged.push(m);
+                ids.add(m.msgId);
+              }
+            });
+            merged.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            messages = merged;
+            existingIds = ids;
+            localStorage.setItem('chat_history', JSON.stringify(messages));
+            renderAllMessages();
           } else {
-            appendNewMessages(serverMsgs);
+            renderAllMessages();
           }
-        })
-        .catch(err => console.error('Ошибка запроса:', err));
+          firstLoad = false;
+        } else {
+          appendNewMessages(serverMsgs);
+        }
+      })
+      .catch(err => {
+        console.error('Fetch error:', err);
+        showError('Не удалось связаться с сервером. Проверьте интернет или перезагрузите страницу.');
+      });
     }
 
-    // ===== Отправка сообщения =====
     function sendMessage() {
       const text = inputField.value.trim();
       if (!text || !userName) return;
@@ -1135,22 +1032,31 @@
       }
 
       inputField.value = '';
+      hideError();
 
       fetch(API_URL, {
         method: 'POST',
         mode: 'cors',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
+        credentials: 'omit'
       })
-      .then(res => res.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        return response.json();
+      })
       .then(data => {
         if (data.error) {
-          alert('Ошибка отправки: ' + data.error);
+          showError('Ошибка отправки: ' + data.error);
         }
+        // Принудительная синхронизация через 1 сек
         setTimeout(fetchMessages, 1000);
       })
       .catch(err => {
-        alert('Ошибка соединения: ' + err.message);
+        console.error('Send error:', err);
+        showError('Не удалось отправить сообщение. Попробуйте позже.');
       });
     }
 
@@ -1195,8 +1101,15 @@
     // Инициализация
     initUserName();
     console.log('Чат загружен. UserID:', userID);
+    console.log('API_URL:', API_URL);
   })();
 </script>
+
+
+
+
+
+    
 
     
 </body>
