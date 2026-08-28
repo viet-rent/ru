@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Чат</title>
+  <title>Чат (вебхук)</title>
   <style>
     body { font-family: Arial; padding: 20px; max-width: 500px; margin: auto; }
     #chat { border:1px solid #ccc; padding:10px; margin-top:10px; display:none; }
@@ -27,10 +27,10 @@
 </div>
 
 <script>
-// ===== НАСТРОЙКИ =====
-const API_URL = 'https://script.google.com/macros/s/AKfycbxu-VIgasaWztmaMC-dh8Id7ZHHRE672bMg7jzRHxLCl0-g7LG_rsJ70zOxRy2PIIat/exec';
+// ===== ВАШ URL (обязательно обновите!) =====
+const API_URL = 'https://script.google.com/macros/s/AKfycbzPcwbG0kIJeytPGlegTg4cfbTWzsmn_pSgtotk-JUyD96-Fy8FTWCQLczc3lX2H-ao/exec';
 
-// ===== СОСТОЯНИЕ =====
+// ===== Состояние =====
 let userName = localStorage.getItem('chat_user_name') || 'Гость';
 let userID = localStorage.getItem('chat_user_id') || 'user_' + Date.now();
 localStorage.setItem('chat_user_id', userID);
@@ -50,7 +50,7 @@ const errorDiv = document.getElementById('error');
 
 nameInput.value = userName;
 
-// ===== РЕНДЕР =====
+// ===== Рендер =====
 function render() {
   messagesDiv.innerHTML = history.map(m => 
     `<div class="msg"><span class="name">${m.userName}</span> ${m.message} <span class="time">${new Date(m.timestamp).toLocaleTimeString()}</span></div>`
@@ -59,35 +59,36 @@ function render() {
 }
 render();
 
-// ===== ЗАГРУЗКА С СЕРВЕРА =====
+// ===== Загрузка с сервера (GET) =====
 function load() {
   fetch(API_URL)
-    .then(response => {
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      return response.json();
-    })
-    .then(data => {
-      // Проверяем, что data — объект и содержит messages
-      if (typeof data !== 'object' || data === null) throw new Error('Неверный ответ сервера');
-      if (data.error) throw new Error(data.error);
-      if (!Array.isArray(data.messages)) throw new Error('Ответ не содержит массив messages');
-
-      const serverMsgs = data.messages;
-      const newMsgs = serverMsgs.filter(m => !ids.has(m.msgId));
-      if (newMsgs.length) {
-        newMsgs.forEach(m => { ids.add(m.msgId); history.push(m); });
-        localStorage.setItem('chat_history', JSON.stringify(history));
-        render();
+    .then(r => r.text())  // читаем как текст
+    .then(text => {
+      // Если сервер вернул "GET OK" – значит, история пуста
+      if (text === 'GET OK') {
+        // ничего не делаем
+        return;
+      }
+      // Если вдруг сервер вернёт JSON (для обратной совместимости)
+      try {
+        const data = JSON.parse(text);
+        if (data.messages) {
+          const newMsgs = data.messages.filter(m => !ids.has(m.msgId));
+          if (newMsgs.length) {
+            newMsgs.forEach(m => { ids.add(m.msgId); history.push(m); });
+            localStorage.setItem('chat_history', JSON.stringify(history));
+            render();
+          }
+        }
+      } catch(e) {
+        // если не JSON, игнорируем
       }
       errorDiv.textContent = '';
     })
-    .catch(err => {
-      errorDiv.textContent = 'Ошибка загрузки: ' + err.message;
-      console.error('load error:', err);
-    });
+    .catch(e => errorDiv.textContent = 'Ошибка загрузки: ' + e.message);
 }
 
-// ===== ОТПРАВКА =====
+// ===== Отправка (POST) =====
 function send() {
   const name = nameInput.value.trim() || 'Гость';
   const text = msgInput.value.trim();
@@ -102,7 +103,7 @@ function send() {
     msgId: msgId
   };
 
-  // Локальное добавление
+  // Оптимистичное добавление
   history.push(msg);
   ids.add(msgId);
   localStorage.setItem('chat_history', JSON.stringify(history));
@@ -115,23 +116,19 @@ function send() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(msg)
   })
-  .then(response => {
-    if (!response.ok) throw new Error('HTTP ' + response.status);
-    return response.json();
+  .then(r => r.text())
+  .then(text => {
+    if (text === 'OK') {
+      errorDiv.textContent = 'Отправлено!';
+      load(); // обновляем историю с сервера
+    } else {
+      errorDiv.textContent = 'Ошибка сервера: ' + text;
+    }
   })
-  .then(data => {
-    if (data.error) throw new Error(data.error);
-    errorDiv.textContent = 'Отправлено!';
-    // Обновляем историю с сервера (чтобы получить подтверждение)
-    setTimeout(load, 500);
-  })
-  .catch(err => {
-    errorDiv.textContent = 'Ошибка отправки: ' + err.message;
-    console.error('send error:', err);
-  });
+  .catch(e => errorDiv.textContent = 'Ошибка отправки: ' + e.message);
 }
 
-// ===== СОБЫТИЯ =====
+// ===== События =====
 openBtn.onclick = function() {
   chatDiv.style.display = 'block';
   openBtn.style.display = 'none';
