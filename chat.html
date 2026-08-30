@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
   <style>
-    /* ===== СТИЛИ (полный набор) ===== */
+    /* ===== СТИЛИ (полный набор из предыдущего) ===== */
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -345,10 +345,10 @@
 </main>
 <script>
   // ============================================================
-  //  FRONTEND CHAT (полная логика)
+  //  FRONTEND CHAT (с загрузкой файлов на Google Drive через GAS)
   // ============================================================
 
-  const BASE_URL = 'https://script.google.com/macros/s/AKfycbz5xXv_o2e76eJnKWe5bt7UcFfNSLfbHTHNXJWrPgmO3wkSNeOUWymhczAQSl5V2wdZ/exec'; // замените на ваш GAS URL
+  const BASE_URL = 'https://script.google.com/macros/s/AKfycbyZgGavNOOsA2U1-dL28BGUWLPJN7YwadYPpTQXWHBKwhrps4mq_QLlIEcSCqk3CY6g/exec'; // замените на ваш GAS URL
 
   // ----- IP -----
   let userIP = 'unknown';
@@ -589,7 +589,7 @@
 
     setStatus('Загрузка файла...', false);
     try {
-      const response = await fetch(BASE_URL, { // отправляем на тот же GAS-прокси
+      const response = await fetch(BASE_URL, {
         method: 'POST',
         body: formData
       });
