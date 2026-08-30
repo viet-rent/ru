@@ -5,119 +5,96 @@
   <title>Панель менеджера</title>
   <style>
     body { font-family: Arial; max-width: 800px; margin: 20px auto; padding: 10px; }
-    .user-block { border: 1px solid #ccc; padding: 12px; margin-bottom: 20px; border-radius: 8px; }
-    .user-block h3 { margin-top: 0; }
-    .msg { margin: 4px 0; }
+    #messages { height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; border-radius: 8px; margin-bottom: 12px; }
+    .msg { margin: 6px 0; padding: 4px; border-bottom: 1px solid #eee; }
     .msg .name { font-weight: bold; }
     .msg .time { font-size: 0.8rem; color: #888; }
-    .reply-area { margin-top: 8px; display: flex; gap: 8px; }
-    .reply-input { flex: 1; padding: 6px; border-radius: 20px; border: 1px solid #ccc; }
-    .reply-btn { padding: 6px 16px; border-radius: 20px; border: none; background: #1a73e8; color: white; cursor: pointer; }
+    .msg .userid { font-size: 0.7rem; color: #666; }
+    input, select, button { padding: 8px; margin: 4px 0; border-radius: 8px; border: 1px solid #ccc; }
+    #reply-area { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    #replyInput { flex: 3; min-width: 200px; }
+    #sendReply { background: #28a745; color: white; border: none; padding: 8px 20px; cursor: pointer; }
+    #status { margin-top: 8px; color: green; }
+    .error { color: red; }
   </style>
 </head>
 <body>
-  <h1>Панель менеджера</h1>
-  <div id="login-area">
-    <label>Пароль: <input type="password" id="passwordInput"></label>
-    <button id="loginBtn">Войти</button>
+  <h2>Панель менеджера</h2>
+  <div id="messages"></div>
+  <div id="reply-area">
+    <select id="userSelect" style="flex:1; min-width:150px;">
+      <option value="">Выберите пользователя</option>
+    </select>
+    <input type="text" id="replyInput" placeholder="Введите ответ..." style="flex:3; min-width:200px;">
+    <button id="sendReply">Отправить ответ</button>
   </div>
-  <div id="manager-content" style="display:none;">
-    <div id="users-container"></div>
-    <div id="status"></div>
-  </div>
+  <div id="status"></div>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbyL85Jrd_eiAXj6UAP0DlqqdLhWxVIAe9a9goN7UnY1_uAMje1PNUFnoU6Iyozrt7v8/exec'; // тот же URL
-    const PASSWORD = '8110808'; // установите свой
-
-    const loginArea = document.getElementById('login-area');
-    const content = document.getElementById('manager-content');
-    const passwordInput = document.getElementById('passwordInput');
-    const loginBtn = document.getElementById('loginBtn');
-    const usersContainer = document.getElementById('users-container');
+    const API_URL = 'https://script.google.com/macros/s/AKfycbz6w7mW7X8tyu4ftMNmXlJVSbyQuSEx-amlXY_dmlRQzvktlDmfucAFC6mNCtTp5HFZ/exec';
+    const messagesDiv = document.getElementById('messages');
+    const userSelect = document.getElementById('userSelect');
+    const replyInput = document.getElementById('replyInput');
+    const sendReplyBtn = document.getElementById('sendReply');
     const statusDiv = document.getElementById('status');
 
-    loginBtn.addEventListener('click', function() {
-      if (passwordInput.value === PASSWORD) {
-        loginArea.style.display = 'none';
-        content.style.display = 'block';
-        loadAllMessages();
-        setInterval(loadAllMessages, 5000);
-      } else {
-        alert('Неверный пароль');
-      }
-    });
-
-    function loadAllMessages() {
-      fetch(API_URL) // без user_id, возвращает все
+    function loadMessages() {
+      fetch(API_URL) // без userID, получаем все
         .then(r => r.json())
         .then(data => {
-          if (data.error) {
-            statusDiv.textContent = 'Ошибка: ' + data.error;
-            return;
-          }
-          const msgs = data.messages || [];
-          renderAllUsers(msgs);
+          if (data.error) { statusDiv.textContent = 'Ошибка: ' + data.error; return; }
+          renderMessages(data.messages || []);
+          updateUserSelect(data.messages || []);
           statusDiv.textContent = 'Обновлено ' + new Date().toLocaleTimeString();
         })
-        .catch(err => {
-          statusDiv.textContent = 'Ошибка: ' + err.message;
-        });
+        .catch(err => statusDiv.textContent = 'Ошибка загрузки: ' + err.message);
     }
 
-    function renderAllUsers(msgs) {
-      // Группируем по user_id
-      const groups = {};
-      msgs.forEach(msg => {
-        if (!groups[msg.user_id]) groups[msg.user_id] = [];
-        groups[msg.user_id].push(msg);
-      });
-
-      let html = '';
-      for (const [userId, userMsgs] of Object.entries(groups)) {
-        // сортируем по времени
-        userMsgs.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        const userName = userMsgs[0]?.name || 'Гость';
-        html += `<div class="user-block">
-          <h3>${userName} (${userId})</h3>
-          <div>`;
-        userMsgs.forEach(m => {
-          const isManager = m.role === 'manager';
-          html += `<div class="msg" style="${isManager ? 'background:#ffd966;' : ''}">
-            <span class="name">${m.name}</span>
-            <span class="time">${new Date(m.timestamp).toLocaleTimeString()}</span>
-            : ${m.message}
-          </div>`;
-        });
-        html += `</div>
-          <div class="reply-area">
-            <input type="text" class="reply-input" placeholder="Ответ для ${userName}..." data-userid="${userId}">
-            <button class="reply-btn" data-userid="${userId}">Ответить</button>
-          </div>
+    function renderMessages(msgs) {
+      messagesDiv.innerHTML = msgs.map(m => {
+        const isManager = (m.userID === 'manager');
+        return `<div class="msg" style="${isManager ? 'background: #d4edda;' : ''}">
+          <span class="name">${m.userName}</span>
+          <span class="userid">(${m.userID})</span>
+          <span class="time">${new Date(m.timestamp).toLocaleTimeString()}</span>
+          <div>${m.message}</div>
+          ${m.targetUserID ? `<div style="font-size:0.8rem;color:#666;">→ для ${m.targetUserID}</div>` : ''}
         </div>`;
-      }
-      usersContainer.innerHTML = html;
-
-      // Назначаем обработчики на кнопки ответа
-      document.querySelectorAll('.reply-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const userId = this.dataset.userid;
-          const input = document.querySelector(`.reply-input[data-userid="${userId}"]`);
-          const text = input.value.trim();
-          if (!text) return;
-          sendManagerReply(userId, text);
-          input.value = '';
-        });
-      });
+      }).join('');
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
-    function sendManagerReply(userId, message) {
+    function updateUserSelect(msgs) {
+      const users = new Set();
+      msgs.forEach(m => {
+        if (m.userID && m.userID !== 'manager') users.add(m.userID);
+      });
+      const currentVal = userSelect.value;
+      userSelect.innerHTML = '<option value="">Выберите пользователя</option>';
+      users.forEach(id => {
+        const option = document.createElement('option');
+        option.value = id;
+        option.textContent = id;
+        userSelect.appendChild(option);
+      });
+      if (currentVal && users.has(currentVal)) userSelect.value = currentVal;
+    }
+
+    function sendReply() {
+      const targetUserID = userSelect.value;
+      const replyText = replyInput.value.trim();
+      if (!targetUserID) { statusDiv.textContent = 'Выберите пользователя'; return; }
+      if (!replyText) { statusDiv.textContent = 'Введите текст ответа'; return; }
+
       const payload = {
-        user_id: userId,
-        name: 'Менеджер',
-        message: message,
-        role: 'manager'
+        userID: 'manager',
+        userName: 'Менеджер',
+        message: replyText,
+        targetUserID: targetUserID,
+        isResponse: true
       };
+
+      statusDiv.textContent = 'Отправка...';
       fetch(API_URL, {
         method: 'POST',
         mode: 'no-cors',
@@ -125,13 +102,18 @@
         body: JSON.stringify(payload)
       })
       .then(() => {
-        statusDiv.textContent = 'Ответ отправлен';
-        setTimeout(loadAllMessages, 1000);
+        statusDiv.textContent = '✅ Ответ отправлен!';
+        replyInput.value = '';
+        setTimeout(loadMessages, 1000);
       })
-      .catch(err => {
-        statusDiv.textContent = 'Ошибка: ' + err.message;
-      });
+      .catch(err => statusDiv.textContent = '❌ Ошибка: ' + err.message);
     }
+
+    sendReplyBtn.onclick = sendReply;
+    replyInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendReply(); });
+
+    loadMessages();
+    setInterval(loadMessages, 5000);
   </script>
 </body>
 </html>
