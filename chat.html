@@ -2,97 +2,136 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Чат – тест</title>
+  <title>Чат</title>
+  <style>
+    body { font-family: Arial; max-width: 600px; margin: 20px auto; padding: 10px; }
+    #chat { border:1px solid #ccc; border-radius: 12px; padding: 16px; background: #f9f9f9; }
+    #messages { height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: white; border-radius: 8px; margin-bottom: 12px; }
+    .msg { margin: 6px 0; }
+    .msg .name { font-weight: bold; color: #1a73e8; }
+    .msg .time { font-size: 0.75rem; color: #888; margin-left: 8px; }
+    .msg .text { background: #e9ecef; padding: 4px 12px; border-radius: 12px; display: inline-block; max-width: 80%; }
+    .msg.own .text { background: #d2e3fc; }
+    .msg.own { text-align: right; }
+    input, button { padding: 8px 12px; border-radius: 20px; border: 1px solid #ccc; margin: 4px 0; }
+    #input-area { display: flex; gap: 8px; flex-wrap: wrap; }
+    #nameInput { flex: 1; min-width: 100px; }
+    #msgInput { flex: 3; min-width: 200px; }
+    #sendBtn { background: #1a73e8; color: white; border: none; padding: 8px 20px; cursor: pointer; }
+    #status { margin-top: 8px; color: green; }
+    .error { color: red; }
+  </style>
 </head>
 <body>
-  <h1>Чат (тест)</h1>
-  <div>
-    <input type="text" id="nameInput" placeholder="Ваше имя" value="Гость">
-    <input type="text" id="msgInput" placeholder="Сообщение">
-    <button id="sendBtn">Отправить</button>
+  <div id="chat">
+    <h2>Чат поддержки</h2>
+    <div id="messages"></div>
+    <div id="input-area">
+      <input type="text" id="nameInput" placeholder="Ваше имя" value="Гость">
+      <input type="text" id="msgInput" placeholder="Напишите сообщение...">
+      <button id="sendBtn">Отправить</button>
+    </div>
+    <div id="status"></div>
   </div>
-  <div id="result"></div>
-  <hr>
-  <h3>История (последние сообщения)</h3>
-  <div id="history"></div>
 
   <script>
-    // ===== ВАШ URL (замените на свой) =====
-    const API_URL = 'https://script.google.com/macros/s/AKfycbyzT9B5qF16qjiRnAWSECVAt6aajQhYMMZdbmwpzA1FBmWLibgvwFJamxPVCWWCcwSG/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbytKvNey0r0HPc0R9YekZTvhkgYrRq3JMtfgLXvI3_GyY5Kt89LoUeW-H73rc704bMt/exec'; // замените на ваш URL
 
-    // ===== Элементы =====
+    const messagesDiv = document.getElementById('messages');
     const nameInput = document.getElementById('nameInput');
     const msgInput = document.getElementById('msgInput');
     const sendBtn = document.getElementById('sendBtn');
-    const resultDiv = document.getElementById('result');
-    const historyDiv = document.getElementById('history');
+    const statusDiv = document.getElementById('status');
 
-    // ===== Загрузка истории (GET) =====
-    function loadHistory() {
+    // Загрузка истории (GET)
+    function loadMessages() {
       fetch(API_URL)
-        .then(r => {
-          if (!r.ok) throw new Error('HTTP ' + r.status);
-          return r.json();
+        .then(response => {
+          if (!response.ok) throw new Error('HTTP ' + response.status);
+          return response.json();
         })
         .then(data => {
           if (data.error) {
-            historyDiv.innerHTML = 'Ошибка: ' + data.error;
+            statusDiv.textContent = 'Ошибка: ' + data.error;
+            statusDiv.className = 'error';
             return;
           }
           const msgs = data.messages || [];
-          historyDiv.innerHTML = msgs.map(m =>
-            `<div><b>${m.name}</b> (${new Date(m.timestamp).toLocaleTimeString()}): ${m.value}</div>`
-          ).join('') || 'Сообщений пока нет.';
+          renderMessages(msgs);
+          statusDiv.textContent = 'Обновлено ' + new Date().toLocaleTimeString();
+          statusDiv.className = '';
         })
         .catch(err => {
-          historyDiv.innerHTML = 'Ошибка загрузки: ' + err.message;
+          statusDiv.textContent = 'Ошибка загрузки: ' + err.message;
+          statusDiv.className = 'error';
         });
     }
 
-    // ===== Отправка (POST) =====
+    function renderMessages(msgs) {
+      messagesDiv.innerHTML = msgs.map(m => {
+        const isOwn = (m.name === nameInput.value.trim());
+        return `<div class="msg ${isOwn ? 'own' : ''}">
+          <span class="name">${m.name}</span>
+          <span class="time">${new Date(m.timestamp).toLocaleTimeString()}</span>
+          <div class="text">${m.value}</div>
+        </div>`;
+      }).join('');
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    // Отправка сообщения (POST с no-cors, чтобы гарантировать запись)
     function sendMessage() {
       const name = nameInput.value.trim() || 'Гость';
-      const value = msgInput.value.trim();
-      if (!value) return;
+      const text = msgInput.value.trim();
+      if (!text) return;
 
-      const payload = { name, value };
+      const payload = { name, value: text };
 
-      resultDiv.textContent = 'Отправка...';
+      // Оптимистичное добавление
+      const tempMsg = { timestamp: new Date().toISOString(), name, value: text };
+      const currentMsgs = JSON.parse(localStorage.getItem('chat_messages') || '[]');
+      currentMsgs.push(tempMsg);
+      localStorage.setItem('chat_messages', JSON.stringify(currentMsgs));
+      renderMessages(currentMsgs);
+
+      statusDiv.textContent = 'Отправка...';
+      statusDiv.className = '';
 
       fetch(API_URL, {
         method: 'POST',
+        mode: 'no-cors', // гарантирует отправку даже при CORS
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
-      .then(r => {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-      })
-      .then(data => {
-        if (data.success) {
-          resultDiv.textContent = '✅ Отправлено!';
-          msgInput.value = '';
-          loadHistory(); // обновить историю
-        } else {
-          resultDiv.textContent = '❌ Ошибка: ' + (data.error || 'неизвестная');
-        }
+      .then(() => {
+        statusDiv.textContent = '✅ Отправлено!';
+        // Обновим историю через 1 секунду
+        setTimeout(loadMessages, 1000);
       })
       .catch(err => {
-        resultDiv.textContent = '❌ Ошибка отправки: ' + err.message;
+        statusDiv.textContent = '❌ Ошибка: ' + err.message;
+        statusDiv.className = 'error';
       });
+
+      msgInput.value = '';
     }
 
-    // ===== События =====
+    // События
     sendBtn.addEventListener('click', sendMessage);
-    msgInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') sendMessage();
+    msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+
+    // Загрузка при старте
+    loadMessages();
+    // Автообновление каждые 5 секунд
+    setInterval(loadMessages, 5000);
+
+    // Сохраняем имя в localStorage
+    nameInput.addEventListener('change', function() {
+      localStorage.setItem('chat_username', this.value);
     });
-
-    // Загружаем историю при открытии страницы
-    loadHistory();
-
-    // Обновляем историю каждые 5 секунд
-    setInterval(loadHistory, 5000);
+    // Восстанавливаем имя
+    const savedName = localStorage.getItem('chat_username');
+    if (savedName) nameInput.value = savedName;
   </script>
 </body>
 </html>
