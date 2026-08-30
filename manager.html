@@ -72,7 +72,21 @@
       margin-bottom: 12px;
       padding-bottom: 8px;
       border-bottom: 1px solid #ebebeb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
+    .user-list h3 .refresh-btn {
+      background: none;
+      border: none;
+      color: #ff385c;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px 8px;
+      border-radius: 8px;
+      transition: background 0.2s;
+    }
+    .user-list h3 .refresh-btn:hover { background: #f0f0f0; }
     .dialog-item {
       padding: 10px 12px;
       border-radius: 12px;
@@ -240,6 +254,13 @@
       padding: 40px 0;
     }
     .empty-state i { font-size: 40px; color: #ddd; margin-bottom: 12px; display: block; }
+    .loading-state {
+      text-align: center;
+      color: #717171;
+      padding: 40px 0;
+    }
+    .loading-state i { font-size: 32px; color: #ff385c; margin-bottom: 12px; display: block; animation: spin 1s linear infinite; }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
     @media (max-width: 768px) {
       .main { flex-direction: column; padding: 12px; max-height: none; }
       .user-list { width: 100%; min-width: unset; max-height: 200px; }
@@ -260,8 +281,11 @@
 </header>
 <main class="main">
   <div class="user-list" id="userList">
-    <h3><i class="fas fa-users"></i> Диалоги</h3>
-    <div id="userListItems"></div>
+    <h3>
+      <span><i class="fas fa-users"></i> Диалоги</span>
+      <button class="refresh-btn" id="refreshBtn" title="Обновить"><i class="fas fa-sync-alt"></i></button>
+    </h3>
+    <div id="userListItems"><div class="loading-state"><i class="fas fa-spinner"></i> Загрузка...</div></div>
   </div>
   <div class="chat-panel" id="chatPanel">
     <div class="panel-header">
@@ -289,15 +313,16 @@
 </main>
 <script>
   // ===== НАСТРОЙКИ =====
+  // !!! ЗАМЕНИТЕ НА РЕАЛЬНЫЙ URL ВАШЕГО ВЕБ-ПРИЛОЖЕНИЯ !!!
   const BASE_URL = 'https://script.google.com/macros/s/AKfycbxHv9pSXBmCfALUpwE7FgFLFc8sYJbHYZxTt1hWgn6LeGa0VZUxNVS1mADuh-qE_5if/exec';
   const API_URL = BASE_URL;
   const POST_URL = BASE_URL;
 
   // ===== СОСТОЯНИЕ =====
   let allMessages = [];
-  let users = {};
   let currentUserId = null;
   let geoCache = {};
+  let isLoading = false;
 
   // ===== DOM =====
   const userListItems = document.getElementById('userListItems');
@@ -309,6 +334,7 @@
   const userContacts = document.getElementById('userContacts');
   const userGeo = document.getElementById('userGeo');
   const deleteDialogBtn = document.getElementById('deleteDialogBtn');
+  const refreshBtn = document.getElementById('refreshBtn');
 
   // ===== ФУНКЦИИ =====
   function setStatus(text, isError = false) {
@@ -330,7 +356,7 @@
 
   // ===== ПОЛУЧЕНИЕ ГЕО ПО IP =====
   async function fetchGeo(ip) {
-    if (!ip || ip === 'unknown' || ip === '') return null;
+    if (!ip || ip === 'unknown' || ip === '' || ip === '—') return null;
     if (geoCache[ip]) return geoCache[ip];
     try {
       const resp = await fetch(`https://ip-api.com/json/${ip}?fields=status,country,city,regionName,isp&lang=ru`);
@@ -351,8 +377,17 @@
     }
   }
 
-  // ===== ЗАГРУЗКА СООБЩЕНИЙ (бесшумная) =====
-  function loadAllMessages() {
+  // ===== ЗАГРУЗКА СООБЩЕНИЙ =====
+  function loadAllMessages(showLoading = true) {
+    if (isLoading) return;
+    isLoading = true;
+
+    if (showLoading) {
+      userListItems.innerHTML = '<div class="loading-state"><i class="fas fa-spinner"></i> Загрузка...</div>';
+    }
+
+    setStatus('Загрузка...', false);
+
     fetch(API_URL, { cache: 'no-cache' })
       .then(r => {
         if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -361,21 +396,29 @@
       .then(data => {
         if (data.error) throw new Error(data.error);
         allMessages = data.messages || [];
+        console.log('[Manager] Загружено сообщений:', allMessages.length);
         buildUserList();
         if (currentUserId) {
           renderMessagesForUser(currentUserId);
           updateUserInfo(currentUserId);
         }
-        // Убираем статус ошибки, если была
         setStatus('Обновлено ' + new Date().toLocaleTimeString(), false);
+        isLoading = false;
       })
       .catch(err => {
-        // Ошибку не показываем пользователю, только в консоль
-        console.warn('Ошибка загрузки (будет повторена):', err.message);
-        // Можно показать статус, но без паники
-        // setStatus('Ошибка загрузки, повтор...', true);
-        // Через секунду попробуем снова
-        setTimeout(loadAllMessages, 3000);
+        console.error('[Manager] Ошибка загрузки:', err);
+        setStatus('Ошибка: ' + err.message + ' (повтор через 3 сек...)', true);
+        // Показываем сообщение об ошибке в списке
+        userListItems.innerHTML = `<div class="empty-state" style="color:#ef4444;">
+          <i class="fas fa-exclamation-triangle"></i>
+          <p>Не удалось загрузить диалоги.<br>Проверьте соединение или обновите страницу.</p>
+          <button onclick="loadAllMessages(true)" style="margin-top:12px;padding:8px 20px;background:#ff385c;color:white;border:none;border-radius:20px;cursor:pointer;">Повторить</button>
+        </div>`;
+        isLoading = false;
+        // Автоматический повтор через 5 секунд
+        setTimeout(() => {
+          if (!isLoading) loadAllMessages(false);
+        }, 5000);
       });
   }
 
@@ -398,14 +441,14 @@
       u.count++;
       u.lastMsg = m.value;
       u.lastTimestamp = m.timestamp;
-      if (m.ip) u.ip = m.ip;
+      if (m.ip && m.ip !== 'unknown') u.ip = m.ip;
       if (m.email) u.email = m.email;
       if (m.phone) u.phone = m.phone;
     });
 
     const userIds = Object.keys(userMap);
     if (userIds.length === 0) {
-      userListItems.innerHTML = '<div style="padding:12px;color:#888;">Нет сообщений</div>';
+      userListItems.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>Нет диалогов</p></div>';
       return;
     }
 
@@ -615,10 +658,16 @@
       sendMessage();
     }
   });
+  refreshBtn.addEventListener('click', function() {
+    loadAllMessages(true);
+  });
 
   // ===== ИНИЦИАЛИЗАЦИЯ =====
-  loadAllMessages();
-  setInterval(loadAllMessages, 5000);
+  loadAllMessages(true);
+  // Автообновление каждые 10 секунд
+  setInterval(() => {
+    if (!isLoading) loadAllMessages(false);
+  }, 10000);
 </script>
 </body>
 </html>
