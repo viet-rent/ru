@@ -16,8 +16,6 @@
       display: flex;
       flex-direction: column;
     }
-
-    /* ===== HEADER ===== */
     .header {
       position: sticky;
       top: 0;
@@ -57,16 +55,6 @@
       gap: 6px;
     }
     .header-controls a:hover { color: #ff385c; }
-    .header-controls .chat-btn {
-      background: #ff385c;
-      color: white;
-      padding: 8px 16px;
-      border-radius: 40px;
-      font-weight: 600;
-    }
-    .header-controls .chat-btn:hover { background: #e01e4a; color: white; }
-
-    /* ===== MAIN CHAT ===== */
     .main {
       flex: 1;
       display: flex;
@@ -86,7 +74,6 @@
       flex-direction: column;
       min-height: 500px;
     }
-
     .chat-header {
       padding: 20px 24px;
       border-bottom: 1px solid #ebebeb;
@@ -111,8 +98,6 @@
       gap: 6px;
     }
     .chat-header .status i { font-size: 10px; }
-
-    /* Информация о пользователе */
     .user-info {
       padding: 16px 24px;
       background: #f8f8f8;
@@ -122,14 +107,6 @@
       gap: 12px 20px;
       align-items: center;
     }
-    .user-info .ip {
-      font-size: 13px;
-      color: #717171;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .user-info .ip i { font-size: 14px; color: #888; }
     .user-info .contacts {
       display: flex;
       flex-wrap: wrap;
@@ -153,8 +130,6 @@
     .user-info .contacts input::placeholder {
       color: #aaa;
     }
-
-    /* Поле сообщений */
     .messages-area {
       flex: 1;
       padding: 16px 24px;
@@ -175,7 +150,6 @@
       margin-bottom: 12px;
       display: block;
     }
-
     .msg {
       margin-bottom: 12px;
       display: flex;
@@ -224,8 +198,6 @@
       background: #fff3cd;
       border: 1px solid #ffc107;
     }
-
-    /* Ввод */
     .input-area {
       padding: 16px 24px;
       border-top: 1px solid #ebebeb;
@@ -268,7 +240,6 @@
     .input-area .send-btn:hover { background: #e01e4a; }
     .input-area .send-btn:active { transform: scale(0.97); }
     .input-area .send-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
     #status {
       padding: 8px 24px;
       font-size: 13px;
@@ -282,8 +253,6 @@
       background: #fef2f2;
     }
     #status.show { display: block; }
-
-    /* ===== Адаптив ===== */
     @media (max-width: 768px) {
       .header { padding: 12px 16px; }
       .header .logo { font-size: 20px; }
@@ -305,7 +274,6 @@
       .input-area .send-btn { justify-content: center; }
       .msg .bubble { max-width: 90%; }
     }
-
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(6px); }
       to { opacity: 1; transform: translateY(0); }
@@ -313,71 +281,52 @@
   </style>
 </head>
 <body>
-
-<!-- ===== HEADER ===== -->
 <header class="header">
   <a href="/" class="logo"><i class="fas fa-home"></i>VietRent</a>
   <div class="header-controls">
     <a href="/"><i class="fas fa-arrow-left"></i> На главную</a>
   </div>
 </header>
-
-<!-- ===== CHAT ===== -->
 <main class="main">
   <div class="chat-container">
-    <!-- Заголовок чата -->
     <div class="chat-header">
       <h2><i class="fas fa-comment-dots"></i> Чат поддержки</h2>
       <span class="status"><i class="fas fa-circle"></i> Онлайн</span>
     </div>
-
-    <!-- Информация о пользователе -->
     <div class="user-info">
-      <div class="ip"><i class="fas fa-globe"></i> <span id="ipDisplay">загрузка...</span></div>
       <div class="contacts">
         <input type="email" id="emailInput" placeholder="Email (опционально)" autocomplete="email">
         <input type="tel" id="phoneInput" placeholder="Телефон (опционально)" autocomplete="tel">
       </div>
     </div>
-
-    <!-- Сообщения -->
     <div class="messages-area" id="messagesArea">
       <div class="empty">
         <i class="fas fa-comment-dots"></i>
         <p>Начните диалог — напишите нам, и мы ответим в ближайшее время.</p>
       </div>
     </div>
-
-    <!-- Поле ввода -->
     <div class="input-area">
       <input type="text" id="nameInput" placeholder="Ваше имя" value="Гость">
       <input type="text" id="msgInput" placeholder="Напишите сообщение...">
       <button class="send-btn" id="sendBtn"><i class="fas fa-paper-plane"></i> Отправить</button>
     </div>
-
-    <!-- Статус -->
     <div id="status"></div>
   </div>
 </main>
-
 <script>
   // ===== НАСТРОЙКИ =====
   // ЗАМЕНИТЕ НА РЕАЛЬНЫЙ URL ВАШЕГО ВЕБ-ПРИЛОЖЕНИЯ
-  const BASE_URL = 'https://script.google.com/macros/s/AKfycbzYzHjDLkfGT91Q_UGHmHcgzYW9qyapihBa7WIBBFXjYmaOceF0XfeIvH2uFGxOQ6D1/exec';
+  const BASE_URL = 'https://script.google.com/macros/s/AKfycbxHv9pSXBmCfALUpwE7FgFLFc8sYJbHYZxTt1hWgn6LeGa0VZUxNVS1mADuh-qE_5if/exec';
 
-  // ===== ПОЛУЧЕНИЕ IP =====
+  // ===== ПОЛУЧЕНИЕ IP (скрыто от пользователя) =====
   let userIP = 'unknown';
-  async function fetchIP() {
+  (async function fetchIP() {
     try {
       const resp = await fetch('https://api.ipify.org?format=json');
       const data = await resp.json();
       userIP = data.ip;
-      document.getElementById('ipDisplay').textContent = userIP;
-    } catch (e) {
-      document.getElementById('ipDisplay').textContent = 'не определён';
-    }
-  }
-  fetchIP();
+    } catch (e) { /* тихо падаем */ }
+  })();
 
   // ===== USER ID =====
   let userID = localStorage.getItem('chat_user_id');
@@ -388,6 +337,10 @@
 
   const API_URL = BASE_URL + '?user=' + encodeURIComponent(userID);
   const POST_URL = BASE_URL;
+
+  // ===== СОСТОЯНИЕ =====
+  let messages = [];
+  let msgIds = new Set();
 
   // ===== DOM =====
   const messagesArea = document.getElementById('messagesArea');
@@ -404,64 +357,140 @@
   emailInput.value = localStorage.getItem('chat_email') || '';
   phoneInput.value = localStorage.getItem('chat_phone') || '';
 
-  // Сохранение при изменении
   nameInput.addEventListener('change', () => localStorage.setItem('chat_username', nameInput.value));
   emailInput.addEventListener('change', () => localStorage.setItem('chat_email', emailInput.value));
   phoneInput.addEventListener('change', () => localStorage.setItem('chat_phone', phoneInput.value));
 
-  // ===== ЗАГРУЗКА ИСТОРИИ =====
+  // ===== РЕНДЕР =====
+  function renderMessages(append = false) {
+    if (!append) {
+      // Полная перерисовка (при первом открытии или по принудительному обновлению)
+      if (messages.length === 0) {
+        messagesArea.innerHTML = `
+          <div class="empty">
+            <i class="fas fa-comment-dots"></i>
+            <p>Начните диалог — напишите нам, и мы ответим в ближайшее время.</p>
+          </div>
+        `;
+        return;
+      }
+      let html = '';
+      messages.forEach(m => {
+        html += buildMessageHtml(m);
+      });
+      messagesArea.innerHTML = html;
+    } else {
+      // Добавляем только новые сообщения (инкрементально)
+      // Находим последнее сообщение в DOM (если есть) и добавляем после него
+      // Но проще пересобрать всё заново, если сообщений мало – для плавности
+      // Для больших списков можно добавлять по одному, но для чата это излишне
+      // Сделаем полную перерисовку, но без мерцания (быстро)
+      // Для этого используем requestAnimationFrame и меняем innerHTML целиком
+      // Но чтобы не моргало, можно использовать document fragments – но здесь достаточно быстрой замены
+      // Проблема мерцания обычно возникает при частых обновлениях с полной заменой.
+      // Решение: обновлять только новые сообщения.
+      // Определим, сколько уже есть в DOM, и добавим недостающие.
+      const existing = messagesArea.querySelectorAll('.msg');
+      const existingCount = existing.length;
+      if (messages.length > existingCount) {
+        // Добавляем только новые
+        const fragment = document.createDocumentFragment();
+        for (let i = existingCount; i < messages.length; i++) {
+          const el = createMessageElement(messages[i]);
+          fragment.appendChild(el);
+        }
+        messagesArea.appendChild(fragment);
+        messagesArea.scrollTop = messagesArea.scrollHeight;
+      }
+    }
+    // Автоскролл вниз (для append – уже сделано)
+    if (!append) {
+      messagesArea.scrollTop = messagesArea.scrollHeight;
+    }
+  }
+
+  function buildMessageHtml(m) {
+    const currentName = nameInput.value.trim();
+    const isOwn = (m.name === currentName);
+    const isManager = (m.name === 'Менеджер');
+    const timeStr = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const nameDisplay = isOwn ? 'Вы' : m.name;
+    const cls = isOwn ? 'own' : (isManager ? 'manager' : '');
+    return `
+      <div class="msg ${cls}">
+        <div class="msg-meta">
+          <span class="name">${escHtml(nameDisplay)}</span>
+          <span class="time">${escHtml(timeStr)}</span>
+        </div>
+        <div class="bubble">${escHtml(m.value)}</div>
+      </div>
+    `;
+  }
+
+  function createMessageElement(m) {
+    const div = document.createElement('div');
+    div.className = 'msg' + (m.name === 'Менеджер' ? ' manager' : '') + (m.name === nameInput.value.trim() ? ' own' : '');
+    div.innerHTML = `
+      <div class="msg-meta">
+        <span class="name">${escHtml(m.name === nameInput.value.trim() ? 'Вы' : m.name)}</span>
+        <span class="time">${escHtml(new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</span>
+      </div>
+      <div class="bubble">${escHtml(m.value)}</div>
+    `;
+    return div;
+  }
+
+  function escHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // ===== ЗАГРУЗКА ИСТОРИИ (инкрементальная) =====
   function loadMessages() {
-    fetch(API_URL)
+    fetch(API_URL, { mode: 'cors', cache: 'no-cache' })
       .then(r => {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.json();
       })
       .then(data => {
-        if (data.error) throw new Error(data.error);
-        const msgs = data.messages || [];
-        renderMessages(msgs);
-        setStatus('Обновлено ' + new Date().toLocaleTimeString(), false);
+        if (data.error) {
+          console.warn('Ошибка загрузки:', data.error);
+          return;
+        }
+        const newMessages = data.messages || [];
+        // Фильтруем только новые (по msgId)
+        const added = [];
+        newMessages.forEach(m => {
+          if (!msgIds.has(m.msgId)) {
+            msgIds.add(m.msgId);
+            messages.push(m);
+            added.push(m);
+          }
+        });
+        if (added.length > 0) {
+          // Добавляем новые сообщения в DOM
+          const fragment = document.createDocumentFragment();
+          added.forEach(m => {
+            fragment.appendChild(createMessageElement(m));
+          });
+          messagesArea.appendChild(fragment);
+          messagesArea.scrollTop = messagesArea.scrollHeight;
+          // Убираем пустое сообщение, если оно было
+          const empty = messagesArea.querySelector('.empty');
+          if (empty) empty.remove();
+        }
+        // Скрываем статус, если он был ошибкой
+        setStatus('', false);
       })
       .catch(err => {
-        setStatus('Ошибка загрузки: ' + err.message, true);
+        // Не показываем ошибку пользователю, только в консоль
+        console.warn('Ошибка загрузки:', err.message);
       });
   }
 
-  function renderMessages(msgs) {
-    const currentName = nameInput.value.trim();
-    // Если сообщений нет, показываем пустое состояние
-    if (!msgs.length) {
-      messagesArea.innerHTML = `
-        <div class="empty">
-          <i class="fas fa-comment-dots"></i>
-          <p>Начните диалог — напишите нам, и мы ответим в ближайшее время.</p>
-        </div>
-      `;
-      return;
-    }
-
-    let html = '';
-    msgs.forEach(m => {
-      const isOwn = (m.name === currentName);
-      const isManager = (m.name === 'Менеджер');
-      const timeStr = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const nameDisplay = isOwn ? 'Вы' : m.name;
-      const cls = isOwn ? 'own' : (isManager ? 'manager' : '');
-      html += `
-        <div class="msg ${cls}">
-          <div class="msg-meta">
-            <span class="name">${escHtml(nameDisplay)}</span>
-            <span class="time">${escHtml(timeStr)}</span>
-          </div>
-          <div class="bubble">${escHtml(m.value)}</div>
-        </div>
-      `;
-    });
-    messagesArea.innerHTML = html;
-    messagesArea.scrollTop = messagesArea.scrollHeight;
-  }
-
-  // ===== ОТПРАВКА СООБЩЕНИЯ =====
+  // ===== ОТПРАВКА =====
   function sendMessage() {
     const name = nameInput.value.trim() || 'Гость';
     const text = msgInput.value.trim();
@@ -469,7 +498,6 @@
 
     const email = emailInput.value.trim();
     const phone = phoneInput.value.trim();
-    // Сохраняем контакты в localStorage
     localStorage.setItem('chat_email', email);
     localStorage.setItem('chat_phone', phone);
 
@@ -484,6 +512,29 @@
       msgId: msgId
     };
 
+    // Оптимистичное добавление
+    const tempMsg = {
+      timestamp: new Date().toISOString(),
+      name: name,
+      value: text,
+      userID: userID,
+      ip: userIP,
+      email: email,
+      phone: phone,
+      msgId: msgId
+    };
+    // Добавляем локально
+    if (!msgIds.has(msgId)) {
+      msgIds.add(msgId);
+      messages.push(tempMsg);
+      const el = createMessageElement(tempMsg);
+      messagesArea.appendChild(el);
+      messagesArea.scrollTop = messagesArea.scrollHeight;
+      const empty = messagesArea.querySelector('.empty');
+      if (empty) empty.remove();
+    }
+
+    msgInput.value = '';
     setStatus('Отправка...', false);
     sendBtn.disabled = true;
 
@@ -494,29 +545,26 @@
       body: JSON.stringify(payload)
     })
     .then(() => {
-      setStatus('✅ Отправлено!', false);
-      msgInput.value = '';
-      setTimeout(loadMessages, 800);
+      setStatus('Отправлено', false);
+      // Через секунду подгружаем реальные данные с сервера
+      setTimeout(loadMessages, 1000);
     })
     .catch(err => {
-      setStatus('❌ Ошибка: ' + err.message, true);
+      setStatus('Ошибка отправки: ' + err.message, true);
     })
     .finally(() => {
       sendBtn.disabled = false;
     });
   }
 
-  // ===== ВСПОМОГАТЕЛЬНЫЕ =====
   function setStatus(text, isError = false) {
-    statusDiv.textContent = text;
-    statusDiv.className = 'show' + (isError ? ' error' : '');
-  }
-
-  function escHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+    if (text) {
+      statusDiv.textContent = text;
+      statusDiv.className = 'show' + (isError ? ' error' : '');
+    } else {
+      statusDiv.className = '';
+      statusDiv.textContent = '';
+    }
   }
 
   // ===== СОБЫТИЯ =====
