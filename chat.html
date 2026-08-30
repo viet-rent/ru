@@ -2,9 +2,9 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Чат поддержки</title>
+  <title>Чат</title>
   <style>
-    /* стили как раньше */
+    /* стили из предыдущего */
   </style>
 </head>
 <body>
@@ -20,18 +20,87 @@
   </div>
 
   <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxH_n4yp6tOKZiFIzF5d1Sxme22uqZcMvwHI-ZXEHjA1SQB-Ktkb4-zG0vxpag31MT5/exec';
+    
     // Генерируем или получаем userID
     let userID = localStorage.getItem('chat_user_id');
     if (!userID) {
       userID = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
       localStorage.setItem('chat_user_id', userID);
     }
-
-    const API_URL = 'https://script.google.com/macros/s/ВАШ_URL/exec?user=' + encodeURIComponent(userID);
-    // В POST используем тот же URL без параметра user, потому что мы передаём userID в теле
-    const POST_URL = 'https://script.google.com/macros/s/ВАШ_URL/exec';
-
-    // ... остальной код, но в fetch для GET используем API_URL, а для POST используем POST_URL и в payload добавляем userID
+    
+    const messagesDiv = document.getElementById('messages');
+    const nameInput = document.getElementById('nameInput');
+    const msgInput = document.getElementById('msgInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const statusDiv = document.getElementById('status');
+    
+    function loadMessages() {
+      const url = API_URL + '?userID=' + encodeURIComponent(userID);
+      fetch(url)
+        .then(r => r.json())
+        .then(data => {
+          if (data.error) { statusDiv.textContent = 'Ошибка: ' + data.error; return; }
+          renderMessages(data.messages || []);
+          statusDiv.textContent = 'Обновлено ' + new Date().toLocaleTimeString();
+        })
+        .catch(err => statusDiv.textContent = 'Ошибка загрузки: ' + err.message);
+    }
+    
+    function renderMessages(msgs) {
+      const name = nameInput.value.trim() || 'Гость';
+      messagesDiv.innerHTML = msgs.map(m => {
+        const isOwn = (m.userID === userID);
+        const isManager = (m.userID === 'manager');
+        return `<div class="msg ${isOwn ? 'own' : ''} ${isManager ? 'support' : ''}">
+          <span class="name">${m.userName}</span>
+          <span class="time">${new Date(m.timestamp).toLocaleTimeString()}</span>
+          <div class="text">${m.message}</div>
+        </div>`;
+      }).join('');
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+    
+    function sendMessage() {
+      const name = nameInput.value.trim() || 'Гость';
+      const text = msgInput.value.trim();
+      if (!text) return;
+      
+      const payload = {
+        userID: userID,
+        userName: name,
+        message: text,
+        isResponse: false
+      };
+      
+      statusDiv.textContent = 'Отправка...';
+      fetch(API_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(() => {
+        statusDiv.textContent = 'Отправлено!';
+        setTimeout(loadMessages, 1000);
+      })
+      .catch(err => statusDiv.textContent = 'Ошибка: ' + err.message);
+      
+      msgInput.value = '';
+    }
+    
+    sendBtn.onclick = sendMessage;
+    msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+    
+    loadMessages();
+    setInterval(loadMessages, 5000);
+    
+    // сохраняем имя
+    nameInput.addEventListener('change', function() {
+      localStorage.setItem('chat_username', this.value);
+    });
+    const savedName = localStorage.getItem('chat_username');
+    if (savedName) nameInput.value = savedName;
   </script>
 </body>
 </html>
