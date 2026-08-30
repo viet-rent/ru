@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
   <style>
-    /* ===== СТИЛИ (полный набор из предыдущего) ===== */
+    /* ===== ВСЕ СТИЛИ (как в предыдущей версии) ===== */
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -173,13 +173,6 @@
       display: inline-block;
       align-self: flex-start;
     }
-    .msg .bubble img, .msg .bubble video {
-      max-width: 200px;
-      max-height: 200px;
-      border-radius: 8px;
-      display: block;
-      margin: 4px 0;
-    }
     .msg.own {
       align-items: flex-end;
     }
@@ -250,20 +243,6 @@
     .input-row .send-btn:hover { background: #e01e4a; }
     .input-row .send-btn:active { transform: scale(0.97); }
     .input-row .send-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    .attach-btn {
-      background: #ddd;
-      border: none;
-      border-radius: 40px;
-      padding: 8px 12px;
-      cursor: pointer;
-      font-size: 18px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.2s;
-    }
-    .attach-btn:hover { background: #ccc; }
     #status {
       padding: 8px 24px;
       font-size: 13px;
@@ -306,7 +285,7 @@
 </head>
 <body>
 <header class="header">
-  <a href="/" class="logo"><i class="fas fa-home"></i>VietRent</a>
+  <a href="/" class="logo">🏝️🏠VietRent</a>
   <div class="header-controls">
     <a href="/"><i class="fas fa-arrow-left"></i> На главную</a>
   </div>
@@ -331,12 +310,10 @@
     </div>
     <div class="input-area">
       <div class="input-row">
-        <input type="text" id="nameInput" placeholder="Ваше имя" value="Гость">
+        <input type="text" id="nameInput" placeholder="Ваше имя" value="">
       </div>
       <div class="input-row">
-        <textarea id="msgInput" placeholder="Напишите сообщение или вставьте ссылку..." rows="1"></textarea>
-        <button class="attach-btn" id="attachBtn" title="Прикрепить файл">📎</button>
-        <input type="file" id="fileInput" accept="image/*,video/*" style="display: none;">
+        <textarea id="msgInput" placeholder="Напишите сообщение..." rows="1"></textarea>
         <button class="send-btn" id="sendBtn"><i class="fas fa-paper-plane"></i> Отправить</button>
       </div>
     </div>
@@ -344,23 +321,20 @@
   </div>
 </main>
 <script>
-  // ============================================================
-  //  FRONTEND CHAT (с загрузкой файлов на Google Drive через GAS)
-  // ============================================================
+  // ===== НАСТРОЙКИ =====
+  const BASE_URL = 'https://script.google.com/macros/s/AKfycbzK_Ekj-C5YZgVNeDQqjk8TIM-tk1Bc6iB828fQj5iogT5rRKxmRZq3YzeXaxv2aIeb/exec'; // замените на ваш Worker URL
 
-  const BASE_URL = 'https://script.google.com/macros/s/AKfycbyZgGavNOOsA2U1-dL28BGUWLPJN7YwadYPpTQXWHBKwhrps4mq_QLlIEcSCqk3CY6g/exec'; // замените на ваш GAS URL
-
-  // ----- IP -----
+  // ===== ПОЛУЧЕНИЕ IP =====
   let userIP = 'unknown';
   (async function fetchIP() {
     try {
       const resp = await fetch('https://api.ipify.org?format=json');
       const data = await resp.json();
       userIP = data.ip;
-    } catch (e) { /* ignore */ }
+    } catch (e) { /* игнорируем */ }
   })();
 
-  // ----- USER ID -----
+  // ===== USER ID =====
   let userID = localStorage.getItem('chat_user_id');
   if (!userID) {
     userID = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
@@ -370,11 +344,11 @@
   const API_URL = BASE_URL + '?userID=' + encodeURIComponent(userID);
   const POST_URL = BASE_URL;
 
-  // ----- Состояние -----
+  // ===== СОСТОЯНИЕ =====
   let messages = [];
   let msgIds = new Set();
 
-  // ----- DOM -----
+  // ===== DOM =====
   const messagesArea = document.getElementById('messagesArea');
   const nameInput = document.getElementById('nameInput');
   const msgInput = document.getElementById('msgInput');
@@ -382,8 +356,6 @@
   const statusDiv = document.getElementById('status');
   const emailInput = document.getElementById('emailInput');
   const phoneInput = document.getElementById('phoneInput');
-  const attachBtn = document.getElementById('attachBtn');
-  const fileInput = document.getElementById('fileInput');
 
   // Восстановление сохранённых данных
   const savedName = localStorage.getItem('chat_username');
@@ -395,7 +367,7 @@
   emailInput.addEventListener('change', () => localStorage.setItem('chat_email', emailInput.value));
   phoneInput.addEventListener('change', () => localStorage.setItem('chat_phone', phoneInput.value));
 
-  // ----- Авто-расширение textarea -----
+  // ===== АВТО-РАСШИРЕНИЕ TEXTAREA =====
   function autoResize() {
     msgInput.style.height = 'auto';
     msgInput.style.height = Math.min(msgInput.scrollHeight, 150) + 'px';
@@ -403,7 +375,7 @@
   msgInput.addEventListener('input', autoResize);
   msgInput.addEventListener('focus', autoResize);
 
-  // ----- Рендер -----
+  // ===== РЕНДЕР =====
   function createMessageElement(m) {
     const isOwn = (m.userID === userID);
     const isManager = (m.userID === 'manager');
@@ -411,25 +383,12 @@
     div.className = 'msg' + (isOwn ? ' own' : '') + (isManager ? ' manager' : '');
     const timeStr = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const nameDisplay = isOwn ? 'Вы' : (m.userName || 'Гость');
-
-    let content = escHtml(m.message);
-    // Если сообщение содержит ссылку на файл
-    if (m.message.match(/\.(jpg|jpeg|png|gif|webp|mp4|mov|avi|webm)$/i)) {
-      const isImage = m.message.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-      const isVideo = m.message.match(/\.(mp4|mov|avi|webm)$/i);
-      if (isImage) {
-        content = `<img src="${escHtml(m.message)}" style="max-width:200px; max-height:200px; border-radius:8px; display:block;">`;
-      } else if (isVideo) {
-        content = `<video controls style="max-width:200px; max-height:200px; border-radius:8px;"><source src="${escHtml(m.message)}"></video>`;
-      }
-    }
-
     div.innerHTML = `
       <div class="msg-meta">
         <span class="name">${escHtml(nameDisplay)}</span>
         <span class="time">${escHtml(timeStr)}</span>
       </div>
-      <div class="bubble">${content}</div>
+      <div class="bubble">${escHtml(m.message)}</div>
     `;
     return div;
   }
@@ -441,7 +400,7 @@
     return div.innerHTML;
   }
 
-  // ----- Загрузка сообщений -----
+  // ===== ЗАГРУЗКА =====
   function loadMessages() {
     fetch(API_URL, { cache: 'no-cache' })
       .then(r => {
@@ -504,7 +463,7 @@
     messagesArea.scrollTop = messagesArea.scrollHeight;
   }
 
-  // ----- Отправка сообщения -----
+  // ===== ОТПРАВКА =====
   function sendMessage() {
     const name = nameInput.value.trim() || 'Гость';
     const text = msgInput.value.trim();
@@ -517,26 +476,26 @@
 
     const msgId = userID + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
     const payload = {
-      userID,
+      userID: userID,
       userName: name,
       message: text,
       ip: userIP,
-      email,
-      phone,
-      msgId,
+      email: email,
+      phone: phone,
+      msgId: msgId,
       isResponse: false
     };
 
     // Оптимистичное добавление
     const tempMsg = {
       timestamp: new Date().toISOString(),
-      userID,
+      userID: userID,
       userName: name,
       message: text,
       ip: userIP,
-      email,
-      phone,
-      msgId,
+      email: email,
+      phone: phone,
+      msgId: msgId,
       isResponse: false
     };
     if (!msgIds.has(msgId)) {
@@ -572,42 +531,6 @@
     });
   }
 
-  // ----- Загрузка файлов (отправка на GAS) -----
-  attachBtn.addEventListener('click', () => fileInput.click());
-
-  fileInput.addEventListener('change', async function() {
-    if (this.files.length === 0) return;
-    const file = this.files[0];
-    if (file.size > 10 * 1024 * 1024) {
-      setStatus('Файл слишком большой (макс 10 МБ)', true);
-      this.value = '';
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    setStatus('Загрузка файла...', false);
-    try {
-      const response = await fetch(BASE_URL, {
-        method: 'POST',
-        body: formData
-      });
-      const data = await response.json();
-      if (data.success) {
-        msgInput.value = data.url;
-        setStatus('Файл загружен! Отправьте сообщение', false);
-        autoResize();
-      } else {
-        setStatus('Ошибка загрузки: ' + (data.error || 'неизвестная'), true);
-      }
-    } catch (err) {
-      setStatus('Ошибка загрузки: ' + err.message, true);
-    }
-    this.value = '';
-  });
-
-  // ----- Статус -----
   function setStatus(text, isError = false) {
     if (text) {
       statusDiv.textContent = text;
@@ -618,7 +541,7 @@
     }
   }
 
-  // ----- События -----
+  // ===== СОБЫТИЯ =====
   sendBtn.addEventListener('click', sendMessage);
   msgInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -627,7 +550,7 @@
     }
   });
 
-  // ----- Запуск -----
+  // ===== ЗАПУСК =====
   const stored = localStorage.getItem('chat_messages');
   if (stored) {
     try {
