@@ -2,38 +2,97 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Тест POST в Google Sheets</title>
+  <title>Чат – тест</title>
 </head>
 <body>
-  <h1>Тест отправки в Google Sheets</h1>
-  <button id="testBtn">Отправить тестовое сообщение</button>
-  <pre id="result">Результат появится здесь...</pre>
+  <h1>Чат (тест)</h1>
+  <div>
+    <input type="text" id="nameInput" placeholder="Ваше имя" value="Гость">
+    <input type="text" id="msgInput" placeholder="Сообщение">
+    <button id="sendBtn">Отправить</button>
+  </div>
+  <div id="result"></div>
+  <hr>
+  <h3>История (последние сообщения)</h3>
+  <div id="history"></div>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbwDIz1B2fynvWhMLZC7xWSHtYPrSQ16lbp4d_itm_YFl0ac4dnIX_fUusEcWPbFevhl/exec';
+    // ===== ВАШ URL (замените на свой) =====
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyzT9B5qF16qjiRnAWSECVAt6aajQhYMMZdbmwpzA1FBmWLibgvwFJamxPVCWWCcwSG/exec';
 
-    document.getElementById('testBtn').onclick = function() {
-      const payload = {
-        name: 'Тестер',
-        value: 'Привет, это тестовое сообщение! ' + new Date().toLocaleTimeString()
-      };
+    // ===== Элементы =====
+    const nameInput = document.getElementById('nameInput');
+    const msgInput = document.getElementById('msgInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const resultDiv = document.getElementById('result');
+    const historyDiv = document.getElementById('history');
+
+    // ===== Загрузка истории (GET) =====
+    function loadHistory() {
+      fetch(API_URL)
+        .then(r => {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(data => {
+          if (data.error) {
+            historyDiv.innerHTML = 'Ошибка: ' + data.error;
+            return;
+          }
+          const msgs = data.messages || [];
+          historyDiv.innerHTML = msgs.map(m =>
+            `<div><b>${m.name}</b> (${new Date(m.timestamp).toLocaleTimeString()}): ${m.value}</div>`
+          ).join('') || 'Сообщений пока нет.';
+        })
+        .catch(err => {
+          historyDiv.innerHTML = 'Ошибка загрузки: ' + err.message;
+        });
+    }
+
+    // ===== Отправка (POST) =====
+    function sendMessage() {
+      const name = nameInput.value.trim() || 'Гость';
+      const value = msgInput.value.trim();
+      if (!value) return;
+
+      const payload = { name, value };
+
+      resultDiv.textContent = 'Отправка...';
 
       fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
-      .then(response => {
-        if (!response.ok) throw new Error('HTTP ' + response.status);
-        return response.json();
+      .then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
       })
       .then(data => {
-        document.getElementById('result').textContent = '✅ Успешно! Ответ сервера: ' + JSON.stringify(data, null, 2);
+        if (data.success) {
+          resultDiv.textContent = '✅ Отправлено!';
+          msgInput.value = '';
+          loadHistory(); // обновить историю
+        } else {
+          resultDiv.textContent = '❌ Ошибка: ' + (data.error || 'неизвестная');
+        }
       })
-      .catch(error => {
-        document.getElementById('result').textContent = '❌ Ошибка: ' + error.message;
+      .catch(err => {
+        resultDiv.textContent = '❌ Ошибка отправки: ' + err.message;
       });
-    };
+    }
+
+    // ===== События =====
+    sendBtn.addEventListener('click', sendMessage);
+    msgInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    // Загружаем историю при открытии страницы
+    loadHistory();
+
+    // Обновляем историю каждые 5 секунд
+    setInterval(loadHistory, 5000);
   </script>
 </body>
 </html>
