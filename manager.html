@@ -351,10 +351,13 @@
     }
   }
 
-  // ===== ЗАГРУЗКА СООБЩЕНИЙ =====
+  // ===== ЗАГРУЗКА СООБЩЕНИЙ (бесшумная) =====
   function loadAllMessages() {
     fetch(API_URL, { cache: 'no-cache' })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
       .then(data => {
         if (data.error) throw new Error(data.error);
         allMessages = data.messages || [];
@@ -363,10 +366,16 @@
           renderMessagesForUser(currentUserId);
           updateUserInfo(currentUserId);
         }
+        // Убираем статус ошибки, если была
         setStatus('Обновлено ' + new Date().toLocaleTimeString(), false);
       })
       .catch(err => {
-        setStatus('Ошибка: ' + err.message, true);
+        // Ошибку не показываем пользователю, только в консоль
+        console.warn('Ошибка загрузки (будет повторена):', err.message);
+        // Можно показать статус, но без паники
+        // setStatus('Ошибка загрузки, повтор...', true);
+        // Через секунду попробуем снова
+        setTimeout(loadAllMessages, 3000);
       });
   }
 
