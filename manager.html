@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
   <style>
-    /* (те же стили, что и для пользователя, но можно немного адаптировать) */
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -39,6 +38,7 @@
       align-items: center;
       gap: 8px;
     }
+    .logo i { font-size: 26px; }
     .header-controls a {
       text-decoration: none;
       color: #222;
@@ -307,14 +307,16 @@
 </main>
 <script>
   // ===== НАСТРОЙКИ =====
-  const BASE_URL = 'https://script.google.com/macros/s/AKfycby_1XkQZ5Aoo8ftUHosushwKmb_wCgkcnb0-oqzmmpqE3ESaTqBk35MQr4kxdFCrxJN/exec';
+  const BASE_URL = 'https://script.google.com/macros/s/AKfycby_1XkQZ5Aoo8ftUHosushwKmb_wCgkcnb0-oqzmmpqE3ESaTqBk35MQr4kxdFCrxJN/exec'; // замените на ваш URL
   const API_URL = BASE_URL;
   const POST_URL = BASE_URL;
 
+  // ===== СОСТОЯНИЕ =====
   let allMessages = [];
   let currentUserId = null;
   let geoCache = {};
 
+  // ===== DOM =====
   const userListItems = document.getElementById('userListItems');
   const messagesArea = document.getElementById('messagesArea');
   const msgInput = document.getElementById('msgInput');
@@ -326,6 +328,7 @@
   const deleteDialogBtn = document.getElementById('deleteDialogBtn');
   const refreshBtn = document.getElementById('refreshBtn');
 
+  // ===== ВСПОМОГАТЕЛЬНЫЕ =====
   function setStatus(text, isError = false) {
     if (text) {
       statusDiv.textContent = text;
@@ -343,6 +346,7 @@
     return div.innerHTML;
   }
 
+  // ===== ГЕОЛОКАЦИЯ ПО IP =====
   async function fetchGeo(ip) {
     if (!ip || ip === 'unknown' || ip === '') return null;
     if (geoCache[ip]) return geoCache[ip];
@@ -365,6 +369,7 @@
     }
   }
 
+  // ===== ЗАГРУЗКА ВСЕХ СООБЩЕНИЙ (КАК В ПРИМЕРЕ) =====
   function loadAllMessages() {
     fetch(API_URL, { cache: 'no-cache' })
       .then(r => {
@@ -388,6 +393,7 @@
       });
   }
 
+  // ===== ПОСТРОЕНИЕ СПИСКА ДИАЛОГОВ =====
   function buildUserList() {
     const userMap = {};
     allMessages.forEach(m => {
@@ -417,6 +423,7 @@
       return;
     }
 
+    // Сортировка по времени последнего сообщения (новые сверху)
     userIds.sort((a, b) => {
       const ta = userMap[a].lastTimestamp || '';
       const tb = userMap[b].lastTimestamp || '';
@@ -438,6 +445,7 @@
     });
     userListItems.innerHTML = html;
 
+    // Обработчики кликов
     document.querySelectorAll('.dialog-item').forEach(el => {
       el.addEventListener('click', function() {
         const uid = this.dataset.user;
@@ -454,12 +462,14 @@
       });
     });
 
+    // Если есть текущий пользователь, подсветить его
     if (currentUserId) {
       const activeEl = document.querySelector(`.dialog-item[data-user="${currentUserId}"]`);
       if (activeEl) activeEl.classList.add('active');
     }
   }
 
+  // ===== ОБНОВЛЕНИЕ ИНФОРМАЦИИ О ПОЛЬЗОВАТЕЛЕ =====
   function updateUserInfo(uid) {
     const msgs = allMessages.filter(m => m.userID === uid);
     if (msgs.length === 0) return;
@@ -469,6 +479,7 @@
       <span><i class="fas fa-phone"></i> ${escHtml(last.phone || '—')}</span>
       <span><i class="fas fa-ip"></i> ${escHtml(last.ip || '—')}</span>
     `;
+    // Гео
     if (last.ip && last.ip !== 'unknown' && last.ip !== '—') {
       fetchGeo(last.ip).then(geo => {
         if (geo) {
@@ -485,6 +496,7 @@
     }
   }
 
+  // ===== ОТОБРАЖЕНИЕ СООБЩЕНИЙ В ДИАЛОГЕ =====
   function renderMessagesForUser(uid) {
     const userMessages = allMessages.filter(m => m.userID === uid || (m.userID === 'manager' && m.targetUserID === uid));
     if (userMessages.length === 0) {
@@ -500,7 +512,7 @@
           <div class="msg-meta">
             <span class="name">${escHtml(m.userName)}</span>
             <span class="time">${escHtml(timeStr)}</span>
-            ${isManager ? '' : `<button class="delete-btn" data-msgid="${escHtml(m.msgId)}">🗑</button>`}
+            ${!isManager ? `<button class="delete-btn" data-msgid="${escHtml(m.msgId)}">🗑</button>` : ''}
           </div>
           <div class="bubble">${escHtml(m.message)}</div>
         </div>
@@ -509,6 +521,7 @@
     messagesArea.innerHTML = html;
     messagesArea.scrollTop = messagesArea.scrollHeight;
 
+    // Обработчики удаления сообщений (только для сообщений пользователей)
     document.querySelectorAll('.delete-btn').forEach(btn => {
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
@@ -520,6 +533,7 @@
     });
   }
 
+  // ===== УДАЛЕНИЕ СООБЩЕНИЯ =====
   function deleteMessage(msgId) {
     fetch(POST_URL, {
       method: 'POST',
@@ -536,6 +550,7 @@
     });
   }
 
+  // ===== УДАЛЕНИЕ ДИАЛОГА =====
   function deleteDialog() {
     if (!currentUserId) return;
     if (confirm(`Удалить весь диалог с ${currentUserId}?`)) {
@@ -563,6 +578,7 @@
     }
   }
 
+  // ===== ОТПРАВКА ОТВЕТА =====
   function sendMessage() {
     if (!currentUserId) return;
     const text = msgInput.value.trim();
@@ -603,6 +619,7 @@
     });
   }
 
+  // ===== СОБЫТИЯ =====
   deleteDialogBtn.addEventListener('click', deleteDialog);
   sendBtn.addEventListener('click', sendMessage);
   msgInput.addEventListener('keydown', e => {
@@ -613,6 +630,7 @@
   });
   refreshBtn.addEventListener('click', () => loadAllMessages());
 
+  // ===== ЗАПУСК =====
   loadAllMessages();
   setInterval(loadAllMessages, 5000);
 </script>
