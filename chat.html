@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
   <style>
-    /* Полный набор стилей из предыдущей версии (я их не повторяю для краткости, но они такие же как в вашем рабочем примере) */
+    /* (полный набор стилей из предыдущего ответа, они должны совпадать) */
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -316,7 +316,7 @@
 </main>
 <script>
   // ===== НАСТРОЙКИ =====
-  const BASE_URL = 'https://script.google.com/macros/s/AKfycby-DnXNg06JMbT-DhWJ8Kp-aiKzNyuQ95w07x1ODK0Q5Jp4U_ydgfMkElrj9-kAE9mw/exec'; // замените на ваш URL
+  const BASE_URL = 'https://script.google.com/macros/s/AKfycby_1XkQZ5Aoo8ftUHosushwKmb_wCgkcnb0-oqzmmpqE3ESaTqBk35MQr4kxdFCrxJN/exec'; // замените на ваш URL
 
   // ===== ПОЛУЧЕНИЕ IP =====
   let userIP = 'unknown';
@@ -405,9 +405,7 @@
           }
         });
         if (added > 0) {
-          // Сохраняем в localStorage
           localStorage.setItem('chat_messages', JSON.stringify(messages));
-          // Перерисовываем всё (или можно инкрементально, но для простоты перерисовываем)
           renderAllMessages();
           const empty = messagesArea.querySelector('.empty');
           if (empty) empty.remove();
@@ -416,7 +414,6 @@
       })
       .catch(err => {
         console.warn('Ошибка загрузки:', err.message);
-        // Если ошибка и есть локальные сообщения, показываем их
         const stored = localStorage.getItem('chat_messages');
         if (stored) {
           try {
@@ -446,9 +443,7 @@
       return;
     }
     const fragment = document.createDocumentFragment();
-    messages.forEach(m => {
-      fragment.appendChild(createMessageElement(m));
-    });
+    messages.forEach(m => fragment.appendChild(createMessageElement(m)));
     messagesArea.innerHTML = '';
     messagesArea.appendChild(fragment);
     messagesArea.scrollTop = messagesArea.scrollHeight;
@@ -531,7 +526,6 @@
     }
   }
 
-  // ===== СОБЫТИЯ =====
   sendBtn.addEventListener('click', sendMessage);
   msgInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -541,7 +535,6 @@
   });
 
   // ===== ЗАПУСК =====
-  // Сначала показываем локальные сообщения (если есть)
   const stored = localStorage.getItem('chat_messages');
   if (stored) {
     try {
@@ -555,7 +548,6 @@
       }
     } catch (e) {}
   }
-  // Затем загружаем с сервера (обновляем)
   loadMessages();
   setInterval(loadMessages, 5000);
 </script>
