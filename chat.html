@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
   <style>
+    /* Полный набор стилей из предыдущей версии (я их не повторяю для краткости, но они такие же как в вашем рабочем примере) */
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -315,9 +316,9 @@
 </main>
 <script>
   // ===== НАСТРОЙКИ =====
-  const BASE_URL = 'https://script.google.com/macros/s/AKfycbyDaZlGoVKsqUD4cdhsVQho-VhlpHiwpQZV9Q68pbtDfxMUjjpzKpnsz0ve2oGgBzw/exec'; // замените на ваш URL
+  const BASE_URL = 'https://script.google.com/macros/s/AKfycby-DnXNg06JMbT-DhWJ8Kp-aiKzNyuQ95w07x1ODK0Q5Jp4U_ydgfMkElrj9-kAE9mw/exec'; // замените на ваш URL
 
-  // ===== ПОЛУЧЕНИЕ IP (скрыто) =====
+  // ===== ПОЛУЧЕНИЕ IP =====
   let userIP = 'unknown';
   (async function fetchIP() {
     try {
@@ -360,7 +361,7 @@
   emailInput.addEventListener('change', () => localStorage.setItem('chat_email', emailInput.value));
   phoneInput.addEventListener('change', () => localStorage.setItem('chat_phone', phoneInput.value));
 
-  // ===== РЕНДЕР (инкрементальный) =====
+  // ===== РЕНДЕР =====
   function createMessageElement(m) {
     const isOwn = (m.userID === userID);
     const isManager = (m.userID === 'manager');
@@ -388,29 +389,69 @@
   // ===== ЗАГРУЗКА =====
   function loadMessages() {
     fetch(API_URL, { cache: 'no-cache' })
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
       .then(data => {
         if (data.error) { console.warn(data.error); return; }
         const newMessages = data.messages || [];
-        const added = [];
+        let added = 0;
         newMessages.forEach(m => {
           if (!msgIds.has(m.msgId)) {
             msgIds.add(m.msgId);
             messages.push(m);
-            added.push(m);
+            added++;
           }
         });
-        if (added.length > 0) {
-          const fragment = document.createDocumentFragment();
-          added.forEach(m => fragment.appendChild(createMessageElement(m)));
-          messagesArea.appendChild(fragment);
-          messagesArea.scrollTop = messagesArea.scrollHeight;
+        if (added > 0) {
+          // Сохраняем в localStorage
+          localStorage.setItem('chat_messages', JSON.stringify(messages));
+          // Перерисовываем всё (или можно инкрементально, но для простоты перерисовываем)
+          renderAllMessages();
           const empty = messagesArea.querySelector('.empty');
           if (empty) empty.remove();
         }
         setStatus('', false);
       })
-      .catch(err => console.warn('Ошибка загрузки:', err.message));
+      .catch(err => {
+        console.warn('Ошибка загрузки:', err.message);
+        // Если ошибка и есть локальные сообщения, показываем их
+        const stored = localStorage.getItem('chat_messages');
+        if (stored) {
+          try {
+            const storedMsgs = JSON.parse(stored);
+            if (storedMsgs.length > 0) {
+              messages = storedMsgs;
+              storedMsgs.forEach(m => msgIds.add(m.msgId));
+              renderAllMessages();
+              const empty = messagesArea.querySelector('.empty');
+              if (empty) empty.remove();
+            }
+          } catch (e) {}
+        }
+      });
+  }
+
+  function renderAllMessages() {
+    if (messages.length === 0) {
+      if (!document.querySelector('.empty')) {
+        messagesArea.innerHTML = `
+          <div class="empty">
+            <i class="fas fa-comment-dots"></i>
+            <p>Начните диалог — напишите нам, и мы ответим в ближайшее время.</p>
+          </div>
+        `;
+      }
+      return;
+    }
+    const fragment = document.createDocumentFragment();
+    messages.forEach(m => {
+      fragment.appendChild(createMessageElement(m));
+    });
+    messagesArea.innerHTML = '';
+    messagesArea.appendChild(fragment);
+    messagesArea.scrollTop = messagesArea.scrollHeight;
   }
 
   // ===== ОТПРАВКА =====
@@ -451,11 +492,11 @@
     if (!msgIds.has(msgId)) {
       msgIds.add(msgId);
       messages.push(tempMsg);
-      const el = createMessageElement(tempMsg);
-      messagesArea.appendChild(el);
-      messagesArea.scrollTop = messagesArea.scrollHeight;
+      localStorage.setItem('chat_messages', JSON.stringify(messages));
+      renderAllMessages();
       const empty = messagesArea.querySelector('.empty');
       if (empty) empty.remove();
+      messagesArea.scrollTop = messagesArea.scrollHeight;
     }
 
     msgInput.value = '';
@@ -490,6 +531,7 @@
     }
   }
 
+  // ===== СОБЫТИЯ =====
   sendBtn.addEventListener('click', sendMessage);
   msgInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
@@ -498,6 +540,22 @@
     }
   });
 
+  // ===== ЗАПУСК =====
+  // Сначала показываем локальные сообщения (если есть)
+  const stored = localStorage.getItem('chat_messages');
+  if (stored) {
+    try {
+      const storedMsgs = JSON.parse(stored);
+      if (storedMsgs.length > 0) {
+        messages = storedMsgs;
+        storedMsgs.forEach(m => msgIds.add(m.msgId));
+        renderAllMessages();
+        const empty = messagesArea.querySelector('.empty');
+        if (empty) empty.remove();
+      }
+    } catch (e) {}
+  }
+  // Затем загружаем с сервера (обновляем)
   loadMessages();
   setInterval(loadMessages, 5000);
 </script>
