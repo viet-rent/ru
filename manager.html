@@ -13,25 +13,19 @@
     .dialog-item.active { background: #d2e3fc; font-weight: bold; }
     .dialog-item .ip { font-size: 0.7rem; color: #888; }
     #messages { height: 350px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: white; border-radius: 8px; margin-bottom: 12px; }
-    .msg { margin: 6px 0; position: relative; }
+    .msg { margin: 6px 0; }
     .msg .name { font-weight: bold; color: #1a73e8; }
     .msg .time { font-size: 0.75rem; color: #888; margin-left: 8px; }
     .msg .text { background: #e9ecef; padding: 4px 12px; border-radius: 12px; display: inline-block; max-width: 80%; }
     .msg.manager .text { background: #ffd966; }
-    .msg .delete-btn { 
-      font-size: 0.7rem; background: #ff6b6b; color: white; border: none; border-radius: 12px; 
-      padding: 2px 8px; cursor: pointer; margin-left: 8px; opacity: 0.6; 
-    }
-    .msg .delete-btn:hover { opacity: 1; }
     #input-area { display: flex; gap: 8px; }
     #msgInput { flex: 1; padding: 8px 12px; border-radius: 20px; border: 1px solid #ccc; }
     #sendBtn { background: #1a73e8; color: white; border: none; padding: 8px 20px; border-radius: 20px; cursor: pointer; }
     #sendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
     #status { margin-top: 8px; color: green; }
     .error { color: red; }
-    #currentUser { font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
-    .delete-dialog-btn { background: #dc3545; color: white; border: none; padding: 4px 12px; border-radius: 12px; cursor: pointer; font-size: 0.8rem; }
-    .delete-dialog-btn:hover { background: #c82333; }
+    #currentUser { font-weight: bold; margin-bottom: 10px; }
+    .back-btn { margin-bottom: 10px; padding: 6px 12px; background: #eee; border: none; border-radius: 12px; cursor: pointer; }
     .user-contacts { font-size: 0.85rem; color: #444; margin-bottom: 10px; background: #f5f5f5; padding: 8px 12px; border-radius: 8px; }
     .user-contacts span { margin-right: 16px; }
   </style>
@@ -44,10 +38,7 @@
       <div id="userListItems"></div>
     </div>
     <div id="chatArea">
-      <div id="currentUser">
-        <span id="currentUserText">Выберите диалог</span>
-        <button class="delete-dialog-btn" id="deleteDialogBtn" style="display:none;">🗑 Удалить диалог</button>
-      </div>
+      <div id="currentUser"></div>
       <div id="userContacts" class="user-contacts"></div>
       <div id="messages"></div>
       <div id="input-area">
@@ -59,7 +50,7 @@
   </div>
 
   <script>
-    const BASE_URL = 'https://script.google.com/macros/s/AKfycbxHv9pSXBmCfALUpwE7FgFLFc8sYJbHYZxTt1hWgn6LeGa0VZUxNVS1mADuh-qE_5if/exec';
+    const BASE_URL = 'https://script.google.com/macros/s/ВАШ_НОВЫЙ_URL/exec';
     const API_URL = BASE_URL;
     const POST_URL = BASE_URL;
 
@@ -72,9 +63,8 @@
     const msgInput = document.getElementById('msgInput');
     const sendBtn = document.getElementById('sendBtn');
     const statusDiv = document.getElementById('status');
-    const currentUserText = document.getElementById('currentUserText');
+    const currentUserDiv = document.getElementById('currentUser');
     const userContactsDiv = document.getElementById('userContacts');
-    const deleteDialogBtn = document.getElementById('deleteDialogBtn');
 
     function loadAllMessages() {
       fetch(API_URL)
@@ -111,6 +101,7 @@
         }
         userMap[m.userID].count++;
         userMap[m.userID].lastMsg = m.value;
+        // Обновляем контакты, если они появились позже
         if (m.ip) userMap[m.userID].ip = m.ip;
         if (m.email) userMap[m.userID].email = m.email;
         if (m.phone) userMap[m.userID].phone = m.phone;
@@ -139,8 +130,7 @@
           updateContacts(uid);
           document.querySelectorAll('.dialog-item').forEach(d => d.classList.remove('active'));
           this.classList.add('active');
-          currentUserText.textContent = 'Диалог с ' + uid;
-          deleteDialogBtn.style.display = 'inline-block';
+          currentUserDiv.textContent = 'Диалог с ' + uid;
           msgInput.disabled = false;
           sendBtn.disabled = false;
           msgInput.focus();
@@ -150,9 +140,6 @@
       if (currentUserId) {
         const activeEl = document.querySelector(`.dialog-item[data-user="${currentUserId}"]`);
         if (activeEl) activeEl.classList.add('active');
-        deleteDialogBtn.style.display = 'inline-block';
-      } else {
-        deleteDialogBtn.style.display = 'none';
       }
     }
 
@@ -168,21 +155,8 @@
           <span class="name">${m.name}</span>
           <span class="time">${new Date(m.timestamp).toLocaleTimeString()}</span>
           <div class="text">${m.value}</div>
-          <button class="delete-btn" data-msgid="${m.msgId}">🗑</button>
         </div>`;
       }).join('');
-
-      // Обработчики для кнопок удаления сообщений
-      document.querySelectorAll('.delete-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-          e.stopPropagation();
-          const msgId = this.dataset.msgid;
-          if (confirm('Удалить это сообщение?')) {
-            deleteMessage(msgId);
-          }
-        });
-      });
-
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
@@ -200,53 +174,6 @@
       }
     }
 
-    // ===== Удаление сообщения =====
-    function deleteMessage(msgId) {
-      fetch(POST_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete', msgId: msgId })
-      })
-      .then(() => {
-        statusDiv.textContent = '🗑 Сообщение удалено';
-        setTimeout(loadAllMessages, 500);
-      })
-      .catch(err => {
-        statusDiv.textContent = '❌ Ошибка удаления: ' + err.message;
-        statusDiv.className = 'error';
-      });
-    }
-
-    // ===== Удаление диалога =====
-    function deleteDialog() {
-      if (!currentUserId) return;
-      if (confirm(`Удалить весь диалог с ${currentUserId}?`)) {
-        fetch(POST_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'delete_dialog', userID: currentUserId })
-        })
-        .then(() => {
-          statusDiv.textContent = '🗑 Диалог удалён';
-          currentUserId = null;
-          deleteDialogBtn.style.display = 'none';
-          currentUserText.textContent = 'Выберите диалог';
-          messagesDiv.innerHTML = '';
-          userContactsDiv.innerHTML = '';
-          msgInput.disabled = true;
-          sendBtn.disabled = true;
-          setTimeout(loadAllMessages, 500);
-        })
-        .catch(err => {
-          statusDiv.textContent = '❌ Ошибка удаления: ' + err.message;
-          statusDiv.className = 'error';
-        });
-      }
-    }
-
-    // ===== Отправка ответа =====
     function sendMessage() {
       if (!currentUserId) return;
       const text = msgInput.value.trim();
@@ -258,8 +185,7 @@
         value: text,
         ip: '',
         email: '',
-        phone: '',
-        msgId: 'manager_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4)
+        phone: ''
       };
 
       statusDiv.textContent = 'Отправка...';
@@ -282,12 +208,9 @@
       });
     }
 
-    // ===== События =====
-    deleteDialogBtn.addEventListener('click', deleteDialog);
     sendBtn.addEventListener('click', sendMessage);
     msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
 
-    // ===== Инициализация =====
     loadAllMessages();
     setInterval(loadAllMessages, 5000);
   </script>
