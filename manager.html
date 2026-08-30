@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
   <style>
-    /* стили как в предыдущей версии, без изменений */
+    /* ===== ВСЕ СТИЛИ (как в предыдущей версии) ===== */
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -308,7 +308,7 @@
 </main>
 <script>
   // ===== НАСТРОЙКИ =====
-  const BASE_URL = 'https://chat-api.tucfas.workers.dev'; // замените на ваш Worker URL
+  const BASE_URL = 'https://ваш-worker.workers.dev'; // замените на ваш Worker URL
   const API_URL = BASE_URL;
   const POST_URL = BASE_URL;
 
@@ -349,9 +349,9 @@
     return div.innerHTML;
   }
 
-  // ===== ГЕОЛОКАЦИЯ ПО IP (с отладкой) =====
+  // ===== ГЕОЛОКАЦИЯ ПО IP (через geolocation-db.com) =====
   async function fetchGeo(ip) {
-    if (!ip || ip === 'unknown' || ip === '') {
+    if (!ip || ip === 'unknown' || ip === '' || ip === '—') {
       console.warn('IP пустой для геолокации');
       return null;
     }
@@ -361,15 +361,15 @@
     }
     try {
       console.log('Запрос гео для IP:', ip);
-      const resp = await fetch(`https://ip-api.com/json/${ip}?fields=status,country,city,regionName,isp&lang=ru`);
+      const resp = await fetch(`https://geolocation-db.com/json/${ip}`);
       const data = await resp.json();
-      console.log('Ответ ip-api.com:', data);
-      if (data.status === 'success') {
+      console.log('Ответ geolocation-db.com:', data);
+      if (data && data.country_name) {
         const geo = {
-          country: data.country || '',
-          region: data.regionName || '',
+          country: data.country_name || '',
+          region: data.state || '',
           city: data.city || '',
-          isp: data.isp || ''
+          isp: '' // сервис не возвращает ISP
         };
         geoCache[ip] = geo;
         console.log('Гео получено:', geo);
@@ -511,7 +511,6 @@
           const flag = getFlagEmoji(geo.country);
           userGeo.innerHTML = `
             <i class="fas fa-map-marker-alt"></i> ${flag} ${escHtml(geo.country)}${geo.city ? ', ' + escHtml(geo.city) : ''}${geo.region ? ' (' + escHtml(geo.region) + ')' : ''}
-            ${geo.isp ? ' | ' + escHtml(geo.isp) : ''}
           `;
         } else {
           userGeo.innerHTML = '';
