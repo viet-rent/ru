@@ -2,19 +2,14 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Чат поддержки</title>
+  <title>Чат</title>
   <style>
-    /* те же стили, что были, плюс небольшое дополнение */
-    .msg.manager .text { background: #ffd966; }
+    /* стили из предыдущего */
   </style>
 </head>
 <body>
   <div id="chat">
     <h2>Чат поддержки</h2>
-    <div id="user-id-area" style="margin-bottom: 12px;">
-      <label>Ваш Email (для идентификации): <input type="email" id="userIdInput" placeholder="example@mail.com" style="width: 70%;"></label>
-      <button id="setUserIdBtn">Установить</button>
-    </div>
     <div id="messages"></div>
     <div id="input-area">
       <input type="text" id="nameInput" placeholder="Ваше имя" value="Гость">
@@ -25,109 +20,60 @@
   </div>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbyL85Jrd_eiAXj6UAP0DlqqdLhWxVIAe9a9goN7UnY1_uAMje1PNUFnoU6Iyozrt7v8/exec'; // замените на ваш URL
-
+    const API_URL = 'https://script.google.com/macros/s/AKfycbz6w7mW7X8tyu4ftMNmXlJVSbyQuSEx-amlXY_dmlRQzvktlDmfucAFC6mNCtTp5HFZ/exec';
+    
+    // Генерируем или получаем userID
+    let userID = localStorage.getItem('chat_user_id');
+    if (!userID) {
+      userID = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+      localStorage.setItem('chat_user_id', userID);
+    }
+    
     const messagesDiv = document.getElementById('messages');
     const nameInput = document.getElementById('nameInput');
     const msgInput = document.getElementById('msgInput');
     const sendBtn = document.getElementById('sendBtn');
     const statusDiv = document.getElementById('status');
-    const userIdInput = document.getElementById('userIdInput');
-    const setUserIdBtn = document.getElementById('setUserIdBtn');
-
-    let currentUserId = localStorage.getItem('chat_user_id') || '';
-
-    if (currentUserId) {
-      userIdInput.value = currentUserId;
-      userIdInput.disabled = true;
-      setUserIdBtn.textContent = 'Изменить ID';
-    }
-
-    function setUserId() {
-      const id = userIdInput.value.trim();
-      if (id) {
-        currentUserId = id;
-        localStorage.setItem('chat_user_id', id);
-        userIdInput.disabled = true;
-        setUserIdBtn.textContent = 'Изменить ID';
-        loadMessages();
-        statusDiv.textContent = 'ID установлен: ' + id;
-      } else {
-        alert('Введите корректный email');
-      }
-    }
-
-    setUserIdBtn.addEventListener('click', function() {
-      if (userIdInput.disabled) {
-        userIdInput.disabled = false;
-        userIdInput.value = '';
-        setUserIdBtn.textContent = 'Сохранить';
-        return;
-      }
-      setUserId();
-    });
-
-    // Если уже есть ID, загружаем при старте
-    if (currentUserId) {
-      loadMessages();
-    }
-
+    
     function loadMessages() {
-      if (!currentUserId) {
-        statusDiv.textContent = 'Сначала укажите ваш Email';
-        return;
-      }
-      const url = API_URL + '?user_id=' + encodeURIComponent(currentUserId);
+      const url = API_URL + '?userID=' + encodeURIComponent(userID);
       fetch(url)
-        .then(response => {
-          if (!response.ok) throw new Error('HTTP ' + response.status);
-          return response.json();
-        })
+        .then(r => r.json())
         .then(data => {
-          if (data.error) {
-            statusDiv.textContent = 'Ошибка: ' + data.error;
-            statusDiv.className = 'error';
-            return;
-          }
-          const msgs = data.messages || [];
-          renderMessages(msgs);
+          if (data.error) { statusDiv.textContent = 'Ошибка: ' + data.error; return; }
+          renderMessages(data.messages || []);
           statusDiv.textContent = 'Обновлено ' + new Date().toLocaleTimeString();
-          statusDiv.className = '';
         })
-        .catch(err => {
-          statusDiv.textContent = 'Ошибка загрузки: ' + err.message;
-          statusDiv.className = 'error';
-        });
+        .catch(err => statusDiv.textContent = 'Ошибка загрузки: ' + err.message);
     }
-
+    
     function renderMessages(msgs) {
-      const currentName = nameInput.value.trim();
+      const name = nameInput.value.trim() || 'Гость';
       messagesDiv.innerHTML = msgs.map(m => {
-        const isOwn = (m.name === currentName && m.role === 'user');
-        const isManager = (m.role === 'manager');
-        return `<div class="msg ${isOwn ? 'own' : ''} ${isManager ? 'manager' : ''}">
-          <span class="name">${m.name}</span>
+        const isOwn = (m.userID === userID);
+        const isManager = (m.userID === 'manager');
+        return `<div class="msg ${isOwn ? 'own' : ''} ${isManager ? 'support' : ''}">
+          <span class="name">${m.userName}</span>
           <span class="time">${new Date(m.timestamp).toLocaleTimeString()}</span>
           <div class="text">${m.message}</div>
         </div>`;
       }).join('');
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
-
+    
     function sendMessage() {
-      if (!currentUserId) {
-        statusDiv.textContent = 'Сначала укажите ваш Email';
-        return;
-      }
       const name = nameInput.value.trim() || 'Гость';
       const text = msgInput.value.trim();
       if (!text) return;
-
-      const payload = { user_id: currentUserId, name, message: text, role: 'user' };
-
+      
+      const payload = {
+        userID: userID,
+        userName: name,
+        message: text,
+        isResponse: false
+      };
+      
       statusDiv.textContent = 'Отправка...';
-      statusDiv.className = '';
-
       fetch(API_URL, {
         method: 'POST',
         mode: 'no-cors',
@@ -135,26 +81,21 @@
         body: JSON.stringify(payload)
       })
       .then(() => {
-        statusDiv.textContent = '✅ Отправлено!';
+        statusDiv.textContent = 'Отправлено!';
         setTimeout(loadMessages, 1000);
       })
-      .catch(err => {
-        statusDiv.textContent = '❌ Ошибка: ' + err.message;
-        statusDiv.className = 'error';
-      });
-
+      .catch(err => statusDiv.textContent = 'Ошибка: ' + err.message);
+      
       msgInput.value = '';
     }
-
-    sendBtn.addEventListener('click', sendMessage);
+    
+    sendBtn.onclick = sendMessage;
     msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
-
-    // Автообновление каждые 5 секунд, если есть ID
-    setInterval(() => {
-      if (currentUserId) loadMessages();
-    }, 5000);
-
-    // Сохраняем имя
+    
+    loadMessages();
+    setInterval(loadMessages, 5000);
+    
+    // сохраняем имя
     nameInput.addEventListener('change', function() {
       localStorage.setItem('chat_username', this.value);
     });
