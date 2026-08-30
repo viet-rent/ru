@@ -4,166 +4,116 @@
   <meta charset="UTF-8">
   <title>Панель менеджера</title>
   <style>
-    body { font-family: Arial; max-width: 900px; margin: 20px auto; padding: 10px; }
-    #container { display: flex; gap: 20px; }
-    #userList { width: 250px; border-right: 1px solid #ccc; padding-right: 15px; }
-    #chatArea { flex: 1; }
-    .dialog-item { padding: 8px; border-bottom: 1px solid #eee; cursor: pointer; }
-    .dialog-item:hover { background: #f0f0f0; }
-    .dialog-item.active { background: #d2e3fc; }
-    #messages { height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; }
-    .msg { margin: 6px 0; }
+    body { font-family: Arial; max-width: 800px; margin: 20px auto; padding: 10px; }
+    #messages { height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; border-radius: 8px; margin-bottom: 12px; }
+    .msg { margin: 6px 0; padding: 4px; border-bottom: 1px solid #eee; }
     .msg .name { font-weight: bold; }
-    .msg .time { font-size: 0.8em; color: #888; }
-    .bubble { background: #f1f3f5; padding: 4px 12px; border-radius: 12px; display: inline-block; }
-    .manager .bubble { background: #fff3cd; }
-    .input-area { display: flex; gap: 10px; margin-top: 10px; }
-    .input-area input { flex: 1; padding: 8px; border-radius: 20px; border: 1px solid #ccc; }
-    .input-area button { background: #ff385c; color: white; border: none; padding: 8px 20px; border-radius: 20px; cursor: pointer; }
+    .msg .time { font-size: 0.8rem; color: #888; }
+    .msg .userid { font-size: 0.7rem; color: #666; }
+    input, select, button { padding: 8px; margin: 4px 0; border-radius: 8px; border: 1px solid #ccc; }
+    #reply-area { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    #replyInput { flex: 3; min-width: 200px; }
+    #sendReply { background: #28a745; color: white; border: none; padding: 8px 20px; cursor: pointer; }
     #status { margin-top: 8px; color: green; }
     .error { color: red; }
   </style>
 </head>
 <body>
   <h2>Панель менеджера</h2>
-  <div id="container">
-    <div id="userList"><h3>Диалоги</h3><div id="userListItems">Загрузка...</div></div>
-    <div id="chatArea">
-      <div id="currentUser"></div>
-      <div id="messages"></div>
-      <div class="input-area">
-        <input type="text" id="msgInput" placeholder="Ответ..." disabled>
-        <button id="sendBtn" disabled>Отправить</button>
-      </div>
-      <div id="status"></div>
-    </div>
+  <div id="messages"></div>
+  <div id="reply-area">
+    <select id="userSelect" style="flex:1; min-width:150px;">
+      <option value="">Выберите пользователя</option>
+    </select>
+    <input type="text" id="replyInput" placeholder="Введите ответ..." style="flex:3; min-width:200px;">
+    <button id="sendReply">Отправить ответ</button>
   </div>
+  <div id="status"></div>
+
   <script>
-    // ===== НАСТРОЙКИ =====
-    // ВСТАВЬТЕ СЮДА ТОТ ЖЕ URL, ЧТО И В РАБОТАЮЩЕЙ СТРАНИЦЕ ПОЛЬЗОВАТЕЛЯ
-    const BASE_URL = 'https://script.google.com/macros/s/AKfycbyE-L71i9D458xfz3u5YzeVeU0g4Gsg9KbsjKgOhnEte49lxun4jLqTO8IIseWya_kq/exec';
-    const API_URL = BASE_URL;
-    const POST_URL = BASE_URL;
-
-    let allMessages = [];
-    let currentUserId = null;
-
-    const userListItems = document.getElementById('userListItems');
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyxywfcRjpWnBFuUpiz0EVF_yKtZArClj6D1wDYq7g9ShrfyLU75LjQcuISFaBamMOz/exec';
     const messagesDiv = document.getElementById('messages');
-    const msgInput = document.getElementById('msgInput');
-    const sendBtn = document.getElementById('sendBtn');
+    const userSelect = document.getElementById('userSelect');
+    const replyInput = document.getElementById('replyInput');
+    const sendReplyBtn = document.getElementById('sendReply');
     const statusDiv = document.getElementById('status');
-    const currentUserDiv = document.getElementById('currentUser');
 
-    function loadAllMessages() {
-      fetch(API_URL)
-        .then(r => {
-          if (!r.ok) throw new Error('HTTP ' + r.status);
-          return r.json();
-        })
+    function loadMessages() {
+      fetch(API_URL) // без userID, получаем все
+        .then(r => r.json())
         .then(data => {
-          if (data.error) throw new Error(data.error);
-          allMessages = data.messages || [];
-          console.log('Загружено сообщений:', allMessages.length);
-          buildUserList();
-          if (currentUserId) renderMessagesForUser(currentUserId);
+          if (data.error) { statusDiv.textContent = 'Ошибка: ' + data.error; return; }
+          renderMessages(data.messages || []);
+          updateUserSelect(data.messages || []);
           statusDiv.textContent = 'Обновлено ' + new Date().toLocaleTimeString();
-          statusDiv.className = '';
         })
-        .catch(err => {
-          console.error('Ошибка:', err);
-          statusDiv.textContent = 'Ошибка: ' + err.message;
-          statusDiv.className = 'error';
-          userListItems.innerHTML = '<div style="color:red;">Ошибка загрузки. Проверьте консоль.</div>';
-        });
+        .catch(err => statusDiv.textContent = 'Ошибка загрузки: ' + err.message);
     }
 
-    function buildUserList() {
-      const users = {};
-      allMessages.forEach(m => {
-        // Группируем по userID, если его нет — используем 'anonymous'
-        const uid = m.userID || 'anonymous';
-        if (!users[uid]) users[uid] = { count: 0, lastMsg: '' };
-        users[uid].count++;
-        users[uid].lastMsg = m.value;
-      });
-      const userIds = Object.keys(users);
-      if (userIds.length === 0) {
-        userListItems.innerHTML = '<div>Нет диалогов</div>';
-        return;
-      }
-      userListItems.innerHTML = userIds.map(uid => `
-        <div class="dialog-item" data-user="${uid}">
-          <strong>${uid}</strong> (${users[uid].count})<br>
-          <span style="font-size:0.8rem;color:#555;">${users[uid].lastMsg.substring(0,30)}</span>
-        </div>
-      `).join('');
-
-      document.querySelectorAll('.dialog-item').forEach(el => {
-        el.addEventListener('click', function() {
-          const uid = this.dataset.user;
-          currentUserId = uid;
-          renderMessagesForUser(uid);
-          document.querySelectorAll('.dialog-item').forEach(d => d.classList.remove('active'));
-          this.classList.add('active');
-          currentUserDiv.textContent = 'Диалог с ' + uid;
-          msgInput.disabled = false;
-          sendBtn.disabled = false;
-        });
-      });
-    }
-
-    function renderMessagesForUser(uid) {
-      const msgs = allMessages.filter(m => (m.userID || 'anonymous') === uid);
-      if (msgs.length === 0) {
-        messagesDiv.innerHTML = '<p>Нет сообщений</p>';
-        return;
-      }
-      messagesDiv.innerHTML = msgs.map(m => `
-        <div class="msg ${m.name === 'Менеджер' ? 'manager' : ''}">
-          <span class="name">${m.name}</span>
+    function renderMessages(msgs) {
+      messagesDiv.innerHTML = msgs.map(m => {
+        const isManager = (m.userID === 'manager');
+        return `<div class="msg" style="${isManager ? 'background: #d4edda;' : ''}">
+          <span class="name">${m.userName}</span>
+          <span class="userid">(${m.userID})</span>
           <span class="time">${new Date(m.timestamp).toLocaleTimeString()}</span>
-          <div class="bubble">${m.value}</div>
-        </div>
-      `).join('');
+          <div>${m.message}</div>
+          ${m.targetUserID ? `<div style="font-size:0.8rem;color:#666;">→ для ${m.targetUserID}</div>` : ''}
+        </div>`;
+      }).join('');
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
-    function sendMessage() {
-      if (!currentUserId) return;
-      const text = msgInput.value.trim();
-      if (!text) return;
-      // Если currentUserId === 'anonymous', то отправляем без userID (или с пустым)
-      const uid = currentUserId === 'anonymous' ? '' : currentUserId;
+    function updateUserSelect(msgs) {
+      const users = new Set();
+      msgs.forEach(m => {
+        if (m.userID && m.userID !== 'manager') users.add(m.userID);
+      });
+      const currentVal = userSelect.value;
+      userSelect.innerHTML = '<option value="">Выберите пользователя</option>';
+      users.forEach(id => {
+        const option = document.createElement('option');
+        option.value = id;
+        option.textContent = id;
+        userSelect.appendChild(option);
+      });
+      if (currentVal && users.has(currentVal)) userSelect.value = currentVal;
+    }
+
+    function sendReply() {
+      const targetUserID = userSelect.value;
+      const replyText = replyInput.value.trim();
+      if (!targetUserID) { statusDiv.textContent = 'Выберите пользователя'; return; }
+      if (!replyText) { statusDiv.textContent = 'Введите текст ответа'; return; }
+
       const payload = {
-        userID: uid,
-        name: 'Менеджер',
-        value: text,
-        ip: '', email: '', phone: '',
-        msgId: 'manager_' + Date.now()
+        userID: 'manager',
+        userName: 'Менеджер',
+        message: replyText,
+        targetUserID: targetUserID,
+        isResponse: true
       };
-      fetch(POST_URL, {
+
+      statusDiv.textContent = 'Отправка...';
+      fetch(API_URL, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
       .then(() => {
-        statusDiv.textContent = '✅ Отправлено';
-        msgInput.value = '';
-        setTimeout(loadAllMessages, 1000);
+        statusDiv.textContent = '✅ Ответ отправлен!';
+        replyInput.value = '';
+        setTimeout(loadMessages, 1000);
       })
-      .catch(err => {
-        statusDiv.textContent = '❌ Ошибка: ' + err.message;
-        statusDiv.className = 'error';
-      });
+      .catch(err => statusDiv.textContent = '❌ Ошибка: ' + err.message);
     }
 
-    sendBtn.addEventListener('click', sendMessage);
-    msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+    sendReplyBtn.onclick = sendReply;
+    replyInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendReply(); });
 
-    loadAllMessages();
-    setInterval(loadAllMessages, 5000);
+    loadMessages();
+    setInterval(loadMessages, 5000);
   </script>
 </body>
 </html>
