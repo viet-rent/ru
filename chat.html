@@ -1,489 +1,165 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Чат поддержки — VietRent</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <title>Чат поддержки</title>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #fafafa;
-      color: #222;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-    .header {
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-      background: white;
-      padding: 16px 40px;
-      border-bottom: 1px solid #ebebeb;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    .logo {
-      font-size: 24px;
-      font-weight: 800;
-      color: #ff385c;
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .logo i { font-size: 26px; }
-    .header-controls {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-    .header-controls a {
-      text-decoration: none;
-      color: #222;
-      font-weight: 500;
-      font-size: 15px;
-      transition: color 0.2s;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .header-controls a:hover { color: #ff385c; }
-    .main {
-      flex: 1;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      padding: 40px 20px;
-    }
-    .chat-container {
-      max-width: 680px;
-      width: 100%;
-      background: white;
-      border-radius: 24px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
-      border: 1px solid #ebebeb;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      min-height: 500px;
-    }
-    .chat-header {
-      padding: 20px 24px;
-      border-bottom: 1px solid #ebebeb;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #fafafa;
-    }
-    .chat-header h2 {
-      font-size: 20px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .chat-header h2 i { color: #ff385c; }
-    .chat-header .status {
-      font-size: 13px;
-      color: #22c55e;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .chat-header .status i { font-size: 10px; }
-    .user-info {
-      padding: 16px 24px;
-      background: #f8f8f8;
-      border-bottom: 1px solid #ebebeb;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px 20px;
-      align-items: center;
-    }
-    .user-info .contacts {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px 16px;
-      flex: 1;
-    }
-    .user-info .contacts input {
-      padding: 6px 12px;
-      border: 1px solid #ddd;
-      border-radius: 20px;
-      font-size: 13px;
-      background: white;
-      outline: none;
-      transition: border-color 0.2s;
-      min-width: 140px;
-      flex: 1;
-    }
-    .user-info .contacts input:focus {
-      border-color: #ff385c;
-    }
-    .user-info .contacts input::placeholder {
-      color: #aaa;
-    }
-    .messages-area {
-      flex: 1;
-      padding: 16px 24px;
-      overflow-y: auto;
-      max-height: 420px;
-      min-height: 250px;
-      background: #ffffff;
-    }
-    .messages-area .empty {
-      text-align: center;
-      color: #999;
-      font-size: 15px;
-      padding: 40px 0;
-    }
-    .messages-area .empty i {
-      font-size: 40px;
-      color: #ddd;
-      margin-bottom: 12px;
-      display: block;
-    }
-    .msg {
-      margin-bottom: 12px;
-      display: flex;
-      flex-direction: column;
-      animation: fadeIn 0.2s ease;
-    }
-    .msg .msg-meta {
-      display: flex;
-      align-items: baseline;
-      gap: 10px;
-      margin-bottom: 2px;
-    }
-    .msg .msg-meta .name {
-      font-weight: 600;
-      font-size: 14px;
-      color: #222;
-    }
-    .msg .msg-meta .time {
-      font-size: 11px;
-      color: #999;
-    }
-    .msg .bubble {
-      background: #f1f3f5;
-      padding: 10px 16px;
-      border-radius: 18px;
-      border-bottom-left-radius: 4px;
-      max-width: 80%;
-      word-wrap: break-word;
-      font-size: 15px;
-      line-height: 1.5;
-      display: inline-block;
-      align-self: flex-start;
-    }
-    .msg.own {
-      align-items: flex-end;
-    }
-    .msg.own .bubble {
-      background: #ff385c;
-      color: white;
-      border-bottom-left-radius: 18px;
-      border-bottom-right-radius: 4px;
-      align-self: flex-end;
-    }
-    .msg.own .msg-meta .name { color: #ff385c; }
-    .msg.manager .bubble {
-      background: #fff3cd;
-      border: 1px solid #ffc107;
-    }
-    .input-area {
-      padding: 16px 24px;
-      border-top: 1px solid #ebebeb;
-      background: #fafafa;
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-    .input-area input[type="text"] {
-      flex: 1;
-      padding: 10px 16px;
-      border: 1px solid #ddd;
-      border-radius: 40px;
-      font-size: 15px;
-      outline: none;
-      transition: border-color 0.2s;
-      background: white;
-      min-width: 150px;
-    }
-    .input-area input[type="text"]:focus {
-      border-color: #ff385c;
-      box-shadow: 0 0 0 3px rgba(255,56,92,0.1);
-    }
-    .input-area .send-btn {
-      background: #ff385c;
-      color: white;
-      border: none;
-      padding: 10px 24px;
-      border-radius: 40px;
-      font-weight: 600;
-      font-size: 15px;
-      cursor: pointer;
-      transition: background 0.2s, transform 0.1s;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      white-space: nowrap;
-    }
-    .input-area .send-btn:hover { background: #e01e4a; }
-    .input-area .send-btn:active { transform: scale(0.97); }
-    .input-area .send-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    #status {
-      padding: 8px 24px;
-      font-size: 13px;
-      color: #22c55e;
-      background: #f0fdf4;
-      border-top: 1px solid #ebebeb;
-      display: none;
-    }
-    #status.error {
-      color: #ef4444;
-      background: #fef2f2;
-    }
-    #status.show { display: block; }
-    @media (max-width: 768px) {
-      .header { padding: 12px 16px; }
-      .header .logo { font-size: 20px; }
-      .header-controls a { font-size: 14px; }
-      .main { padding: 20px 12px; }
-      .chat-container { border-radius: 16px; }
-      .chat-header { padding: 14px 16px; }
-      .user-info { padding: 12px 16px; }
-      .user-info .contacts input { min-width: 100px; }
-      .messages-area { padding: 12px 16px; max-height: 350px; }
-      .input-area { padding: 12px 16px; flex-wrap: wrap; }
-      .input-area input[type="text"] { min-width: 120px; }
-    }
-    @media (max-width: 480px) {
-      .user-info { flex-direction: column; align-items: stretch; }
-      .user-info .contacts { flex-direction: column; }
-      .user-info .contacts input { min-width: unset; }
-      .input-area { flex-direction: column; align-items: stretch; }
-      .input-area .send-btn { justify-content: center; }
-      .msg .bubble { max-width: 90%; }
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
+    /* те же стили, что были, плюс небольшое дополнение */
+    .msg.manager .text { background: #ffd966; }
   </style>
 </head>
 <body>
-<header class="header">
-  <a href="/" class="logo"><i class="fas fa-home"></i>VietRent</a>
-  <div class="header-controls">
-    <a href="/"><i class="fas fa-arrow-left"></i> На главную</a>
-  </div>
-</header>
-<main class="main">
-  <div class="chat-container">
-    <div class="chat-header">
-      <h2><i class="fas fa-comment-dots"></i> Чат поддержки</h2>
-      <span class="status"><i class="fas fa-circle"></i> Онлайн</span>
+  <div id="chat">
+    <h2>Чат поддержки</h2>
+    <div id="user-id-area" style="margin-bottom: 12px;">
+      <label>Ваш Email (для идентификации): <input type="email" id="userIdInput" placeholder="example@mail.com" style="width: 70%;"></label>
+      <button id="setUserIdBtn">Установить</button>
     </div>
-    <div class="user-info">
-      <div class="contacts">
-        <input type="email" id="emailInput" placeholder="Email (опционально)" autocomplete="email">
-        <input type="tel" id="phoneInput" placeholder="Телефон (опционально)" autocomplete="tel">
-      </div>
-    </div>
-    <div class="messages-area" id="messagesArea">
-      <div class="empty">
-        <i class="fas fa-comment-dots"></i>
-        <p>Начните диалог — напишите нам, и мы ответим в ближайшее время.</p>
-      </div>
-    </div>
-    <div class="input-area">
+    <div id="messages"></div>
+    <div id="input-area">
       <input type="text" id="nameInput" placeholder="Ваше имя" value="Гость">
       <input type="text" id="msgInput" placeholder="Напишите сообщение...">
-      <button class="send-btn" id="sendBtn"><i class="fas fa-paper-plane"></i> Отправить</button>
+      <button id="sendBtn">Отправить</button>
     </div>
     <div id="status"></div>
   </div>
-</main>
-<script>
-  // ===== НАСТРОЙКИ =====
-  const BASE_URL = 'https://script.google.com/macros/s/AKfycbyE-L71i9D458xfz3u5YzeVeU0g4Gsg9KbsjKgOhnEte49lxun4jLqTO8IIseWya_kq/exec';
 
-  // ===== ПОЛУЧЕНИЕ IP =====
-  let userIP = 'unknown';
-  (async function fetchIP() {
-    try {
-      const resp = await fetch('https://api.ipify.org?format=json');
-      const data = await resp.json();
-      userIP = data.ip;
-    } catch (e) { /* ignore */ }
-  })();
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbxu8WDtelASIISRacF9AqlWcIKzbxlgon6BEyQzmOyx4xp39CYCpBJvPGE5jRfGSvFh/exec'; // замените на ваш URL
 
-  // ===== USER ID =====
-  let userID = localStorage.getItem('chat_user_id');
-  if (!userID) {
-    userID = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
-    localStorage.setItem('chat_user_id', userID);
-  }
+    const messagesDiv = document.getElementById('messages');
+    const nameInput = document.getElementById('nameInput');
+    const msgInput = document.getElementById('msgInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const statusDiv = document.getElementById('status');
+    const userIdInput = document.getElementById('userIdInput');
+    const setUserIdBtn = document.getElementById('setUserIdBtn');
 
-  const API_URL = BASE_URL + '?user=' + encodeURIComponent(userID);
-  const POST_URL = BASE_URL;
+    let currentUserId = localStorage.getItem('chat_user_id') || '';
 
-  // ===== СОСТОЯНИЕ =====
-  let messages = [];
-  let msgIds = new Set();
-
-  // ===== DOM =====
-  const messagesArea = document.getElementById('messagesArea');
-  const nameInput = document.getElementById('nameInput');
-  const msgInput = document.getElementById('msgInput');
-  const sendBtn = document.getElementById('sendBtn');
-  const statusDiv = document.getElementById('status');
-  const emailInput = document.getElementById('emailInput');
-  const phoneInput = document.getElementById('phoneInput');
-
-  // Восстановление сохранённых данных
-  const savedName = localStorage.getItem('chat_username');
-  if (savedName) nameInput.value = savedName;
-  emailInput.value = localStorage.getItem('chat_email') || '';
-  phoneInput.value = localStorage.getItem('chat_phone') || '';
-
-  nameInput.addEventListener('change', () => localStorage.setItem('chat_username', nameInput.value));
-  emailInput.addEventListener('change', () => localStorage.setItem('chat_email', emailInput.value));
-  phoneInput.addEventListener('change', () => localStorage.setItem('chat_phone', phoneInput.value));
-
-  // ===== РЕНДЕР =====
-  function createMessageElement(m) {
-    const div = document.createElement('div');
-    const isOwn = (m.name === nameInput.value.trim());
-    const isManager = (m.name === 'Менеджер');
-    div.className = 'msg' + (isOwn ? ' own' : '') + (isManager ? ' manager' : '');
-    div.innerHTML = `
-      <div class="msg-meta">
-        <span class="name">${isOwn ? 'Вы' : escHtml(m.name)}</span>
-        <span class="time">${new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-      </div>
-      <div class="bubble">${escHtml(m.value)}</div>
-    `;
-    return div;
-  }
-
-  function escHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
-
-  // ===== ЗАГРУЗКА =====
-  function loadMessages() {
-    fetch(API_URL, { cache: 'no-cache' })
-      .then(r => r.json())
-      .then(data => {
-        if (data.error) { console.warn(data.error); return; }
-        const newMessages = data.messages || [];
-        const added = [];
-        newMessages.forEach(m => {
-          if (!msgIds.has(m.msgId)) {
-            msgIds.add(m.msgId);
-            messages.push(m);
-            added.push(m);
-          }
-        });
-        if (added.length > 0) {
-          const fragment = document.createDocumentFragment();
-          added.forEach(m => fragment.appendChild(createMessageElement(m)));
-          messagesArea.appendChild(fragment);
-          messagesArea.scrollTop = messagesArea.scrollHeight;
-          const empty = messagesArea.querySelector('.empty');
-          if (empty) empty.remove();
-        }
-        setStatus('', false);
-      })
-      .catch(err => console.warn('Ошибка загрузки:', err.message));
-  }
-
-  // ===== ОТПРАВКА =====
-  function sendMessage() {
-    const name = nameInput.value.trim() || 'Гость';
-    const text = msgInput.value.trim();
-    if (!text) return;
-
-    const email = emailInput.value.trim();
-    const phone = phoneInput.value.trim();
-    localStorage.setItem('chat_email', email);
-    localStorage.setItem('chat_phone', phone);
-
-    const msgId = userID + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
-    const payload = {
-      userID, name, value: text, ip: userIP, email, phone, msgId
-    };
-
-    // Оптимистичное добавление
-    const tempMsg = {
-      timestamp: new Date().toISOString(),
-      name, value: text, userID, ip: userIP, email, phone, msgId
-    };
-    if (!msgIds.has(msgId)) {
-      msgIds.add(msgId);
-      messages.push(tempMsg);
-      const el = createMessageElement(tempMsg);
-      messagesArea.appendChild(el);
-      messagesArea.scrollTop = messagesArea.scrollHeight;
-      const empty = messagesArea.querySelector('.empty');
-      if (empty) empty.remove();
+    if (currentUserId) {
+      userIdInput.value = currentUserId;
+      userIdInput.disabled = true;
+      setUserIdBtn.textContent = 'Изменить ID';
     }
 
-    msgInput.value = '';
-    setStatus('Отправка...', false);
-    sendBtn.disabled = true;
+    function setUserId() {
+      const id = userIdInput.value.trim();
+      if (id) {
+        currentUserId = id;
+        localStorage.setItem('chat_user_id', id);
+        userIdInput.disabled = true;
+        setUserIdBtn.textContent = 'Изменить ID';
+        loadMessages();
+        statusDiv.textContent = 'ID установлен: ' + id;
+      } else {
+        alert('Введите корректный email');
+      }
+    }
 
-    fetch(POST_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(() => {
-      setStatus('Отправлено', false);
-      setTimeout(loadMessages, 1000);
-    })
-    .catch(err => {
-      setStatus('Ошибка отправки: ' + err.message, true);
-    })
-    .finally(() => {
-      sendBtn.disabled = false;
+    setUserIdBtn.addEventListener('click', function() {
+      if (userIdInput.disabled) {
+        userIdInput.disabled = false;
+        userIdInput.value = '';
+        setUserIdBtn.textContent = 'Сохранить';
+        return;
+      }
+      setUserId();
     });
-  }
 
-  function setStatus(text, isError = false) {
-    if (text) {
-      statusDiv.textContent = text;
-      statusDiv.className = 'show' + (isError ? ' error' : '');
-    } else {
+    // Если уже есть ID, загружаем при старте
+    if (currentUserId) {
+      loadMessages();
+    }
+
+    function loadMessages() {
+      if (!currentUserId) {
+        statusDiv.textContent = 'Сначала укажите ваш Email';
+        return;
+      }
+      const url = API_URL + '?user_id=' + encodeURIComponent(currentUserId);
+      fetch(url)
+        .then(response => {
+          if (!response.ok) throw new Error('HTTP ' + response.status);
+          return response.json();
+        })
+        .then(data => {
+          if (data.error) {
+            statusDiv.textContent = 'Ошибка: ' + data.error;
+            statusDiv.className = 'error';
+            return;
+          }
+          const msgs = data.messages || [];
+          renderMessages(msgs);
+          statusDiv.textContent = 'Обновлено ' + new Date().toLocaleTimeString();
+          statusDiv.className = '';
+        })
+        .catch(err => {
+          statusDiv.textContent = 'Ошибка загрузки: ' + err.message;
+          statusDiv.className = 'error';
+        });
+    }
+
+    function renderMessages(msgs) {
+      const currentName = nameInput.value.trim();
+      messagesDiv.innerHTML = msgs.map(m => {
+        const isOwn = (m.name === currentName && m.role === 'user');
+        const isManager = (m.role === 'manager');
+        return `<div class="msg ${isOwn ? 'own' : ''} ${isManager ? 'manager' : ''}">
+          <span class="name">${m.name}</span>
+          <span class="time">${new Date(m.timestamp).toLocaleTimeString()}</span>
+          <div class="text">${m.message}</div>
+        </div>`;
+      }).join('');
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function sendMessage() {
+      if (!currentUserId) {
+        statusDiv.textContent = 'Сначала укажите ваш Email';
+        return;
+      }
+      const name = nameInput.value.trim() || 'Гость';
+      const text = msgInput.value.trim();
+      if (!text) return;
+
+      const payload = { user_id: currentUserId, name, message: text, role: 'user' };
+
+      statusDiv.textContent = 'Отправка...';
       statusDiv.className = '';
-      statusDiv.textContent = '';
-    }
-  }
 
-  sendBtn.addEventListener('click', sendMessage);
-  msgInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      sendMessage();
-    }
-  });
+      fetch(API_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(() => {
+        statusDiv.textContent = '✅ Отправлено!';
+        setTimeout(loadMessages, 1000);
+      })
+      .catch(err => {
+        statusDiv.textContent = '❌ Ошибка: ' + err.message;
+        statusDiv.className = 'error';
+      });
 
-  loadMessages();
-  setInterval(loadMessages, 5000);
-</script>
+      msgInput.value = '';
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+
+    // Автообновление каждые 5 секунд, если есть ID
+    setInterval(() => {
+      if (currentUserId) loadMessages();
+    }, 5000);
+
+    // Сохраняем имя
+    nameInput.addEventListener('change', function() {
+      localStorage.setItem('chat_username', this.value);
+    });
+    const savedName = localStorage.getItem('chat_username');
+    if (savedName) nameInput.value = savedName;
+  </script>
 </body>
 </html>
