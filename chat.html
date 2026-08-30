@@ -1,254 +1,137 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Чат поддержки</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: #f5f7fa; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        .chat-container { max-width: 600px; width: 100%; background: white; border-radius: 24px; box-shadow: 0 20px 60px rgba(0,0,0,0.1); overflow: hidden; }
-        .chat-header { background: linear-gradient(135deg, #1a1a2e, #16213e); color: white; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; }
-        .chat-header h2 { font-weight: 600; font-size: 1.2rem; display: flex; align-items: center; gap: 10px; }
-        .chat-header .badge { background: rgba(255,255,255,0.15); padding: 4px 12px; border-radius: 40px; font-size: 0.75rem; font-weight: 500; }
-        .chat-messages { height: 400px; overflow-y: auto; padding: 20px 24px; background: #f8fafc; }
-        .message { margin-bottom: 16px; display: flex; flex-direction: column; }
-        .message .meta { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 0.8rem; color: #64748b; }
-        .message .meta .name { font-weight: 600; color: #0f172a; }
-        .message .text { background: white; padding: 10px 16px; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); word-wrap: break-word; max-width: 85%; align-self: flex-start; }
-        .message.own .text { background: #e0f2fe; align-self: flex-end; }
-        .message.own .meta { justify-content: flex-end; }
-        .chat-input { display: flex; gap: 12px; padding: 16px 24px; background: white; border-top: 1px solid #e9edf2; }
-        .chat-input input[type="text"] { flex: 1; padding: 12px 18px; border: 1px solid #d1d5db; border-radius: 40px; font-size: 0.95rem; outline: none; transition: border 0.2s; }
-        .chat-input input[type="text"]:focus { border-color: #3b82f6; }
-        .chat-input button { padding: 12px 28px; background: #3b82f6; color: white; border: none; border-radius: 40px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-        .chat-input button:hover { background: #2563eb; }
-        .chat-input button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .name-prompt { padding: 16px 24px; background: #f1f5f9; border-bottom: 1px solid #e2e8f0; display: none; }
-        .name-prompt input { width: 100%; padding: 10px 16px; border: 1px solid #cbd5e1; border-radius: 40px; font-size: 0.95rem; outline: none; }
-        .status { padding: 8px 24px; font-size: 0.85rem; color: #475569; background: #f8fafc; text-align: center; border-top: 1px solid #e9edf2; }
-        .status.success { color: #16a34a; }
-        .status.error { color: #dc2626; }
-        .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; font-size: 0.95rem; }
-        .empty-state i { font-size: 2rem; margin-bottom: 12px; display: block; }
-        /* Адаптив */
-        @media (max-width: 640px) { .chat-container { border-radius: 16px; } .chat-messages { height: 300px; padding: 16px; } .chat-input { padding: 12px 16px; flex-wrap: wrap; } .chat-input button { width: 100%; } }
-    </style>
+  <meta charset="UTF-8">
+  <title>Чат</title>
+  <style>
+    body { font-family: Arial; max-width: 600px; margin: 20px auto; padding: 10px; }
+    #chat { border:1px solid #ccc; border-radius: 12px; padding: 16px; background: #f9f9f9; }
+    #messages { height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: white; border-radius: 8px; margin-bottom: 12px; }
+    .msg { margin: 6px 0; }
+    .msg .name { font-weight: bold; color: #1a73e8; }
+    .msg .time { font-size: 0.75rem; color: #888; margin-left: 8px; }
+    .msg .text { background: #e9ecef; padding: 4px 12px; border-radius: 12px; display: inline-block; max-width: 80%; }
+    .msg.own .text { background: #d2e3fc; }
+    .msg.own { text-align: right; }
+    input, button { padding: 8px 12px; border-radius: 20px; border: 1px solid #ccc; margin: 4px 0; }
+    #input-area { display: flex; gap: 8px; flex-wrap: wrap; }
+    #nameInput { flex: 1; min-width: 100px; }
+    #msgInput { flex: 3; min-width: 200px; }
+    #sendBtn { background: #1a73e8; color: white; border: none; padding: 8px 20px; cursor: pointer; }
+    #status { margin-top: 8px; color: green; }
+    .error { color: red; }
+  </style>
 </head>
 <body>
-
-<div class="chat-container">
-    <div class="chat-header">
-        <h2>💬 Чат поддержки</h2>
-        <span class="badge">онлайн</span>
+  <div id="chat">
+    <h2>Чат поддержки</h2>
+    <div id="messages"></div>
+    <div id="input-area">
+      <input type="text" id="nameInput" placeholder="Ваше имя" value="Гость">
+      <input type="text" id="msgInput" placeholder="Напишите сообщение...">
+      <button id="sendBtn">Отправить</button>
     </div>
-    
-    <!-- Поле для ввода имени (показывается, если имя не задано) -->
-    <div class="name-prompt" id="namePrompt">
-        <input type="text" id="nameInput" placeholder="Введите ваше имя..." maxlength="30">
-    </div>
-    
-    <!-- Область сообщений -->
-    <div class="chat-messages" id="messagesContainer">
-        <div class="empty-state">
-            <i>💬</i>
-            <p>Сообщений пока нет. Напишите что-нибудь!</p>
-        </div>
-    </div>
-    
-    <!-- Строка статуса -->
-    <div class="status" id="statusBar">Готов к работе</div>
-    
-    <!-- Поле ввода и кнопка отправки -->
-    <div class="chat-input">
-        <input type="text" id="msgInput" placeholder="Напишите сообщение..." disabled>
-        <button id="sendBtn" disabled>Отправить</button>
-    </div>
-</div>
+    <div id="status"></div>
+  </div>
 
-<script>
-    (function() {
-        'use strict';
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/ВАШ_НОВЫЙ_URL/exec'; // замените на ваш URL
 
-        // ===== НАСТРОЙКИ =====
-        // Используем тот же URL, что и в платёжке (ваш вебхук)
-        const API_URL = 'https://script.google.com/macros/s/AKfycbytKvNey0r0HPc0R9YekZTvhkgYrRq3JMtfgLXvI3_GyY5Kt89LoUeW-H73rc704bMt/exec';
+    const messagesDiv = document.getElementById('messages');
+    const nameInput = document.getElementById('nameInput');
+    const msgInput = document.getElementById('msgInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const statusDiv = document.getElementById('status');
 
-        // ===== DOM элементы =====
-        const namePrompt = document.getElementById('namePrompt');
-        const nameInput = document.getElementById('nameInput');
-        const msgInput = document.getElementById('msgInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const messagesContainer = document.getElementById('messagesContainer');
-        const statusBar = document.getElementById('statusBar');
+    // Загрузка истории (GET)
+    function loadMessages() {
+      fetch(API_URL)
+        .then(response => {
+          if (!response.ok) throw new Error('HTTP ' + response.status);
+          return response.json();
+        })
+        .then(data => {
+          if (data.error) {
+            statusDiv.textContent = 'Ошибка: ' + data.error;
+            statusDiv.className = 'error';
+            return;
+          }
+          const msgs = data.messages || [];
+          renderMessages(msgs);
+          statusDiv.textContent = 'Обновлено ' + new Date().toLocaleTimeString();
+          statusDiv.className = '';
+        })
+        .catch(err => {
+          statusDiv.textContent = 'Ошибка загрузки: ' + err.message;
+          statusDiv.className = 'error';
+        });
+    }
 
-        // ===== Состояние =====
-        let userName = localStorage.getItem('chat_user_name') || '';
-        let userID = localStorage.getItem('chat_user_id');
-        if (!userID) {
-            userID = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
-            localStorage.setItem('chat_user_id', userID);
-        }
+    function renderMessages(msgs) {
+      messagesDiv.innerHTML = msgs.map(m => {
+        const isOwn = (m.name === nameInput.value.trim());
+        return `<div class="msg ${isOwn ? 'own' : ''}">
+          <span class="name">${m.name}</span>
+          <span class="time">${new Date(m.timestamp).toLocaleTimeString()}</span>
+          <div class="text">${m.value}</div>
+        </div>`;
+      }).join('');
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
 
-        let messages = JSON.parse(localStorage.getItem('chat_history') || '[]');
-        let pollInterval = null;
+    // Отправка сообщения (POST с no-cors, чтобы гарантировать запись)
+    function sendMessage() {
+      const name = nameInput.value.trim() || 'Гость';
+      const text = msgInput.value.trim();
+      if (!text) return;
 
-        // ===== Инициализация имени =====
-        function initName() {
-            if (userName) {
-                namePrompt.style.display = 'none';
-                msgInput.disabled = false;
-                sendBtn.disabled = false;
-                msgInput.placeholder = 'Введите сообщение...';
-                return;
-            }
-            namePrompt.style.display = 'block';
-            msgInput.disabled = true;
-            sendBtn.disabled = true;
-            msgInput.placeholder = 'Сначала укажите имя';
-            nameInput.focus();
+      const payload = { name, value: text };
 
-            nameInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    const val = nameInput.value.trim();
-                    if (val) {
-                        userName = val;
-                        localStorage.setItem('chat_user_name', userName);
-                        namePrompt.style.display = 'none';
-                        msgInput.disabled = false;
-                        sendBtn.disabled = false;
-                        msgInput.placeholder = 'Введите сообщение...';
-                        msgInput.focus();
-                        setStatus('Имя сохранено', 'success');
-                    }
-                }
-            });
-        }
+      // Оптимистичное добавление
+      const tempMsg = { timestamp: new Date().toISOString(), name, value: text };
+      const currentMsgs = JSON.parse(localStorage.getItem('chat_messages') || '[]');
+      currentMsgs.push(tempMsg);
+      localStorage.setItem('chat_messages', JSON.stringify(currentMsgs));
+      renderMessages(currentMsgs);
 
-        // ===== Статус =====
-        function setStatus(text, type = '') {
-            statusBar.textContent = text;
-            statusBar.className = 'status' + (type ? ' ' + type : '');
-        }
+      statusDiv.textContent = 'Отправка...';
+      statusDiv.className = '';
 
-        // ===== Рендер сообщений =====
-        function renderMessages() {
-            if (!messages.length) {
-                messagesContainer.innerHTML = `<div class="empty-state"><i>💬</i><p>Сообщений пока нет. Напишите что-нибудь!</p></div>`;
-                return;
-            }
-            let html = '';
-            messages.forEach(msg => {
-                const isOwn = (msg.name === userName);
-                const time = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-                html += `
-                    <div class="message ${isOwn ? 'own' : ''}">
-                        <div class="meta">
-                            <span class="name">${isOwn ? 'Вы' : (msg.name || 'Гость')}</span>
-                            <span>${time}</span>
-                        </div>
-                        <div class="text">${msg.value || ''}</div>
-                    </div>
-                `;
-            });
-            messagesContainer.innerHTML = html;
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
+      fetch(API_URL, {
+        method: 'POST',
+        mode: 'no-cors', // гарантирует отправку даже при CORS
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      .then(() => {
+        statusDiv.textContent = '✅ Отправлено!';
+        // Обновим историю через 1 секунду
+        setTimeout(loadMessages, 1000);
+      })
+      .catch(err => {
+        statusDiv.textContent = '❌ Ошибка: ' + err.message;
+        statusDiv.className = 'error';
+      });
 
-        // ===== Загрузка истории с сервера (GET) =====
-        function loadHistory() {
-            fetch(API_URL)
-                .then(response => {
-                    if (!response.ok) throw new Error('HTTP ' + response.status);
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.error) {
-                        setStatus('Ошибка загрузки: ' + data.error, 'error');
-                        return;
-                    }
-                    const serverMsgs = data.messages || [];
-                    if (serverMsgs.length) {
-                        // Обновляем локальную историю (заменяем полностью для простоты)
-                        messages = serverMsgs;
-                        localStorage.setItem('chat_history', JSON.stringify(messages));
-                    }
-                    renderMessages();
-                    setStatus('Обновлено ' + new Date().toLocaleTimeString(), '');
-                })
-                .catch(err => {
-                    setStatus('Ошибка соединения: ' + err.message, 'error');
-                });
-        }
+      msgInput.value = '';
+    }
 
-        // ===== Отправка сообщения =====
-        function sendMessage() {
-            const text = msgInput.value.trim();
-            if (!text || !userName) return;
+    // События
+    sendBtn.addEventListener('click', sendMessage);
+    msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
 
-            const payload = {
-                name: userName,
-                value: text
-            };
+    // Загрузка при старте
+    loadMessages();
+    // Автообновление каждые 5 секунд
+    setInterval(loadMessages, 5000);
 
-            // Оптимистичное добавление (сразу показываем)
-            const tempMsg = {
-                timestamp: new Date().toISOString(),
-                name: userName,
-                value: text
-            };
-            messages.push(tempMsg);
-            localStorage.setItem('chat_history', JSON.stringify(messages));
-            renderMessages();
-            msgInput.value = '';
-            setStatus('Отправка...', '');
-
-            fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-            .then(response => {
-                if (!response.ok) throw new Error('HTTP ' + response.status);
-                return response.text();
-            })
-            .then(text => {
-                if (text === 'Success') {
-                    setStatus('✅ Отправлено!', 'success');
-                    // Через 1 секунду обновим историю с сервера
-                    setTimeout(loadHistory, 1000);
-                } else {
-                    setStatus('⚠️ Ошибка сервера: ' + text, 'error');
-                }
-            })
-            .catch(err => {
-                setStatus('❌ Ошибка отправки: ' + err.message, 'error');
-            });
-        }
-
-        // ===== Инициализация =====
-        function init() {
-            initName();
-            renderMessages();
-            loadHistory();
-            // Обновляем каждые 5 секунд
-            if (pollInterval) clearInterval(pollInterval);
-            pollInterval = setInterval(loadHistory, 5000);
-
-            // События
-            sendBtn.addEventListener('click', sendMessage);
-            msgInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    sendMessage();
-                }
-            });
-        }
-
-        init();
-
-        console.log('💬 Чат загружен. UserID:', userID, 'Имя:', userName);
-    })();
-</script>
+    // Сохраняем имя в localStorage
+    nameInput.addEventListener('change', function() {
+      localStorage.setItem('chat_username', this.value);
+    });
+    // Восстанавливаем имя
+    const savedName = localStorage.getItem('chat_username');
+    if (savedName) nameInput.value = savedName;
+  </script>
 </body>
 </html>
