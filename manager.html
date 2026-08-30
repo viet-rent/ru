@@ -4,19 +4,20 @@
   <meta charset="UTF-8">
   <title>Панель менеджера</title>
   <style>
-    body { font-family: Arial; max-width: 900px; margin: 20px auto; padding: 10px; }
+    body { font-family: Arial; max-width: 1000px; margin: 20px auto; padding: 10px; }
     #container { display: flex; gap: 20px; min-height: 500px; }
-    #userList { width: 220px; border-right: 1px solid #ccc; padding-right: 15px; overflow-y: auto; max-height: 600px; }
+    #userList { width: 240px; border-right: 1px solid #ccc; padding-right: 15px; overflow-y: auto; max-height: 700px; }
     #chatArea { flex: 1; }
     .dialog-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
     .dialog-item:hover { background: #f0f0f0; }
     .dialog-item.active { background: #d2e3fc; font-weight: bold; }
+    .dialog-item .ip { font-size: 0.7rem; color: #888; }
     #messages { height: 350px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: white; border-radius: 8px; margin-bottom: 12px; }
     .msg { margin: 6px 0; }
     .msg .name { font-weight: bold; color: #1a73e8; }
     .msg .time { font-size: 0.75rem; color: #888; margin-left: 8px; }
     .msg .text { background: #e9ecef; padding: 4px 12px; border-radius: 12px; display: inline-block; max-width: 80%; }
-    .msg.manager .text { background: #ffd966; } /* выделение ответов менеджера */
+    .msg.manager .text { background: #ffd966; }
     #input-area { display: flex; gap: 8px; }
     #msgInput { flex: 1; padding: 8px 12px; border-radius: 20px; border: 1px solid #ccc; }
     #sendBtn { background: #1a73e8; color: white; border: none; padding: 8px 20px; border-radius: 20px; cursor: pointer; }
@@ -25,7 +26,8 @@
     .error { color: red; }
     #currentUser { font-weight: bold; margin-bottom: 10px; }
     .back-btn { margin-bottom: 10px; padding: 6px 12px; background: #eee; border: none; border-radius: 12px; cursor: pointer; }
-    .back-btn:hover { background: #ddd; }
+    .user-contacts { font-size: 0.85rem; color: #444; margin-bottom: 10px; background: #f5f5f5; padding: 8px 12px; border-radius: 8px; }
+    .user-contacts span { margin-right: 16px; }
   </style>
 </head>
 <body>
@@ -37,6 +39,7 @@
     </div>
     <div id="chatArea">
       <div id="currentUser"></div>
+      <div id="userContacts" class="user-contacts"></div>
       <div id="messages"></div>
       <div id="input-area">
         <input type="text" id="msgInput" placeholder="Напишите ответ..." disabled>
@@ -47,13 +50,11 @@
   </div>
 
   <script>
-    // ===== НАСТРОЙКИ =====
-    const BASE_URL = 'https://script.google.com/macros/s/AKfycbzKwm7HFfWUYB7H9NS7enI-3PgGx3EVXIeXoBZTFZQB6I47kSW2DwBX2frJhjJ4EScW/exec'; // замените на ваш URL
-    const API_URL = BASE_URL; // без параметра user — получаем все сообщения
+    const BASE_URL = 'https://script.google.com/macros/s/AKfycbwXpPc5XgwpU7SXXq1WxsqowbvhqYy1jU2lwM70LrpcH0VCAWAni9DBPmG4egUYMW-T/exec';
+    const API_URL = BASE_URL;
     const POST_URL = BASE_URL;
 
     let allMessages = [];
-    let users = [];
     let currentUserId = null;
 
     // DOM
@@ -63,62 +64,70 @@
     const sendBtn = document.getElementById('sendBtn');
     const statusDiv = document.getElementById('status');
     const currentUserDiv = document.getElementById('currentUser');
+    const userContactsDiv = document.getElementById('userContacts');
 
-    // ===== Загрузка всех сообщений =====
     function loadAllMessages() {
       fetch(API_URL)
-        .then(r => {
-          if (!r.ok) throw new Error('HTTP ' + r.status);
-          return r.json();
-        })
+        .then(r => r.json())
         .then(data => {
-          if (data.error) {
-            statusDiv.textContent = 'Ошибка: ' + data.error;
-            statusDiv.className = 'error';
-            return;
-          }
+          if (data.error) throw new Error(data.error);
           allMessages = data.messages || [];
           buildUserList();
           if (currentUserId) {
             renderMessagesForUser(currentUserId);
+            updateContacts(currentUserId);
           }
           statusDiv.textContent = 'Обновлено ' + new Date().toLocaleTimeString();
           statusDiv.className = '';
         })
         .catch(err => {
-          statusDiv.textContent = 'Ошибка загрузки: ' + err.message;
+          statusDiv.textContent = 'Ошибка: ' + err.message;
           statusDiv.className = 'error';
         });
     }
 
-    // ===== Построение списка пользователей =====
     function buildUserList() {
-      const userSet = new Set();
+      const userMap = {};
       allMessages.forEach(m => {
-        if (m.userID) userSet.add(m.userID);
+        if (!m.userID) return;
+        if (!userMap[m.userID]) {
+          userMap[m.userID] = {
+            ip: m.ip || '—',
+            email: m.email || '—',
+            phone: m.phone || '—',
+            count: 0,
+            lastMsg: ''
+          };
+        }
+        userMap[m.userID].count++;
+        userMap[m.userID].lastMsg = m.value;
+        // Обновляем контакты, если они появились позже
+        if (m.ip) userMap[m.userID].ip = m.ip;
+        if (m.email) userMap[m.userID].email = m.email;
+        if (m.phone) userMap[m.userID].phone = m.phone;
       });
-      users = Array.from(userSet);
-      if (users.length === 0) {
+
+      const userIds = Object.keys(userMap);
+      if (userIds.length === 0) {
         userListItems.innerHTML = '<p style="color:#888;">Нет сообщений</p>';
         return;
       }
-      userListItems.innerHTML = users.map(uid => {
-        const userMsgs = allMessages.filter(m => m.userID === uid);
-        const lastMsg = userMsgs[userMsgs.length - 1];
-        const lastText = lastMsg ? lastMsg.value : '';
-        const count = userMsgs.length;
+
+      userListItems.innerHTML = userIds.map(uid => {
+        const info = userMap[uid];
         return `<div class="dialog-item" data-user="${uid}">
-          <div><strong>${uid}</strong> <span style="font-size:0.75rem;color:#888;">(${count})</span></div>
-          <div style="font-size:0.8rem;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${lastText.substring(0,30)}</div>
+          <div><strong>${uid}</strong> <span style="font-size:0.75rem;color:#888;">(${info.count})</span></div>
+          <div style="font-size:0.8rem;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${info.lastMsg.substring(0,40)}</div>
+          <div class="ip">${info.email} | ${info.phone} | IP: ${info.ip}</div>
         </div>`;
       }).join('');
 
-      // Обработка кликов по диалогам
       document.querySelectorAll('.dialog-item').forEach(el => {
         el.addEventListener('click', function() {
           const uid = this.dataset.user;
           currentUserId = uid;
           renderMessagesForUser(uid);
+          updateContacts(uid);
           document.querySelectorAll('.dialog-item').forEach(d => d.classList.remove('active'));
           this.classList.add('active');
           currentUserDiv.textContent = 'Диалог с ' + uid;
@@ -128,18 +137,16 @@
         });
       });
 
-      // Если есть текущий пользователь — подсветить его
       if (currentUserId) {
         const activeEl = document.querySelector(`.dialog-item[data-user="${currentUserId}"]`);
         if (activeEl) activeEl.classList.add('active');
       }
     }
 
-    // ===== Рендер сообщений выбранного пользователя =====
     function renderMessagesForUser(uid) {
       const userMessages = allMessages.filter(m => m.userID === uid);
       if (userMessages.length === 0) {
-        messagesDiv.innerHTML = '<p style="color:#888;">Нет сообщений в этом диалоге</p>';
+        messagesDiv.innerHTML = '<p style="color:#888;">Нет сообщений</p>';
         return;
       }
       messagesDiv.innerHTML = userMessages.map(m => {
@@ -153,19 +160,32 @@
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
-    // ===== Отправка ответа =====
-    function sendMessage() {
-      if (!currentUserId) {
-        alert('Выберите диалог');
-        return;
+    function updateContacts(uid) {
+      const msgs = allMessages.filter(m => m.userID === uid);
+      const last = msgs[msgs.length - 1];
+      if (last) {
+        userContactsDiv.innerHTML = `
+          <span>📧 ${last.email || '—'}</span>
+          <span>📱 ${last.phone || '—'}</span>
+          <span>🌐 ${last.ip || '—'}</span>
+        `;
+      } else {
+        userContactsDiv.innerHTML = 'Контакты не указаны';
       }
+    }
+
+    function sendMessage() {
+      if (!currentUserId) return;
       const text = msgInput.value.trim();
       if (!text) return;
 
       const payload = {
         userID: currentUserId,
         name: 'Менеджер',
-        value: text
+        value: text,
+        ip: '',
+        email: '',
+        phone: ''
       };
 
       statusDiv.textContent = 'Отправка...';
@@ -180,7 +200,6 @@
       .then(() => {
         statusDiv.textContent = '✅ Отправлено!';
         msgInput.value = '';
-        // Обновляем историю через 1 секунду
         setTimeout(loadAllMessages, 1000);
       })
       .catch(err => {
@@ -189,11 +208,9 @@
       });
     }
 
-    // ===== События =====
     sendBtn.addEventListener('click', sendMessage);
     msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
 
-    // ===== Инициализация =====
     loadAllMessages();
     setInterval(loadAllMessages, 5000);
   </script>
