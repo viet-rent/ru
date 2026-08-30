@@ -20,11 +20,19 @@
     #sendBtn { background: #1a73e8; color: white; border: none; padding: 8px 20px; cursor: pointer; }
     #status { margin-top: 8px; color: green; }
     .error { color: red; }
+    .contact-fields { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .contact-fields input { flex: 1; min-width: 120px; padding: 6px 12px; border-radius: 16px; border: 1px solid #ccc; }
+    .ip-info { font-size: 0.8rem; color: #888; margin-bottom: 8px; }
   </style>
 </head>
 <body>
   <div id="chat">
     <h2>Чат поддержки</h2>
+    <div id="ipInfo" class="ip-info">IP: загрузка...</div>
+    <div class="contact-fields">
+      <input type="text" id="emailInput" placeholder="Email (опционально)">
+      <input type="text" id="phoneInput" placeholder="Телефон (опционально)">
+    </div>
     <div id="messages"></div>
     <div id="input-area">
       <input type="text" id="nameInput" placeholder="Ваше имя" value="Гость">
@@ -36,16 +44,35 @@
 
   <script>
     // ===== НАСТРОЙКИ =====
-    const BASE_URL = 'https://script.google.com/macros/s/AKfycbzKwm7HFfWUYB7H9NS7enI-3PgGx3EVXIeXoBZTFZQB6I47kSW2DwBX2frJhjJ4EScW/exec'; // замените на ваш URL
+    const BASE_URL = 'https://script.google.com/macros/s/AKfycbwXpPc5XgwpU7SXXq1WxsqowbvhqYy1jU2lwM70LrpcH0VCAWAni9DBPmG4egUYMW-T/exec'; // замените на ваш URL
 
-    // Генерируем или получаем userID
+    // ===== Получение IP =====
+    let userIP = 'unknown';
+    async function fetchIP() {
+      try {
+        const resp = await fetch('https://api.ipify.org?format=json');
+        const data = await resp.json();
+        userIP = data.ip;
+        document.getElementById('ipInfo').textContent = 'IP: ' + userIP;
+      } catch (e) {
+        console.warn('Не удалось получить IP:', e);
+        document.getElementById('ipInfo').textContent = 'IP: не удалось определить';
+      }
+    }
+    fetchIP();
+
+    // ===== UserID =====
     let userID = localStorage.getItem('chat_user_id');
     if (!userID) {
       userID = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
       localStorage.setItem('chat_user_id', userID);
     }
 
-    // URL для GET с фильтром по пользователю
+    // ===== Контактные данные (localStorage) =====
+    let savedEmail = localStorage.getItem('chat_email') || '';
+    let savedPhone = localStorage.getItem('chat_phone') || '';
+    let savedName = localStorage.getItem('chat_username') || 'Гость';
+
     const API_URL = BASE_URL + '?user=' + encodeURIComponent(userID);
     const POST_URL = BASE_URL;
 
@@ -55,20 +82,31 @@
     const msgInput = document.getElementById('msgInput');
     const sendBtn = document.getElementById('sendBtn');
     const statusDiv = document.getElementById('status');
+    const emailInput = document.getElementById('emailInput');
+    const phoneInput = document.getElementById('phoneInput');
+
+    // Восстанавливаем сохранённые данные
+    nameInput.value = savedName;
+    emailInput.value = savedEmail;
+    phoneInput.value = savedPhone;
+
+    // Сохраняем при изменении
+    nameInput.addEventListener('change', function() {
+      localStorage.setItem('chat_username', this.value);
+    });
+    emailInput.addEventListener('change', function() {
+      localStorage.setItem('chat_email', this.value);
+    });
+    phoneInput.addEventListener('change', function() {
+      localStorage.setItem('chat_phone', this.value);
+    });
 
     // ===== Загрузка истории =====
     function loadMessages() {
       fetch(API_URL)
-        .then(response => {
-          if (!response.ok) throw new Error('HTTP ' + response.status);
-          return response.json();
-        })
+        .then(r => r.json())
         .then(data => {
-          if (data.error) {
-            statusDiv.textContent = 'Ошибка: ' + data.error;
-            statusDiv.className = 'error';
-            return;
-          }
+          if (data.error) throw new Error(data.error);
           const msgs = data.messages || [];
           renderMessages(msgs);
           statusDiv.textContent = 'Обновлено ' + new Date().toLocaleTimeString();
@@ -99,10 +137,19 @@
       const text = msgInput.value.trim();
       if (!text) return;
 
+      // Собираем контактные данные (пользователь мог изменить)
+      const email = emailInput.value.trim();
+      const phone = phoneInput.value.trim();
+      localStorage.setItem('chat_email', email);
+      localStorage.setItem('chat_phone', phone);
+
       const payload = {
         userID: userID,
         name: name,
-        value: text
+        value: text,
+        ip: userIP,
+        email: email,
+        phone: phone
       };
 
       statusDiv.textContent = 'Отправка...';
@@ -116,30 +163,20 @@
       })
       .then(() => {
         statusDiv.textContent = '✅ Отправлено!';
+        msgInput.value = '';
         setTimeout(loadMessages, 1000);
       })
       .catch(err => {
         statusDiv.textContent = '❌ Ошибка: ' + err.message;
         statusDiv.className = 'error';
       });
-
-      msgInput.value = '';
     }
 
-    // ===== События =====
     sendBtn.addEventListener('click', sendMessage);
     msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
 
-    // ===== Инициализация =====
     loadMessages();
     setInterval(loadMessages, 5000);
-
-    // Сохраняем имя в localStorage
-    nameInput.addEventListener('change', function() {
-      localStorage.setItem('chat_username', this.value);
-    });
-    const savedName = localStorage.getItem('chat_username');
-    if (savedName) nameInput.value = savedName;
   </script>
 </body>
 </html>
