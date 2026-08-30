@@ -101,7 +101,7 @@
     .dialog-item .user-id { font-weight: 600; font-size: 14px; }
     .dialog-item .user-contact { font-size: 12px; color: #717171; margin-top: 2px; }
     .dialog-item .user-contact i { width: 14px; margin-right: 4px; }
-    .dialog-item .user-geo { font-size: 11px; color: #999; margin-top: 2px; }
+    .dialog-item .user-geo { font-size: 11px; color: #888; margin-top: 2px; }
     .dialog-item .last-msg { font-size: 13px; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 4px; }
     .chat-panel {
       flex: 1;
@@ -307,14 +307,16 @@
 </main>
 <script>
   // ===== НАСТРОЙКИ =====
-  const BASE_URL = 'https://chat-api.tucfas.workers.dev/'; // замените на ваш URL
+  const BASE_URL = 'https://ваш-worker.workers.dev'; // замените на реальный URL вашего Worker
   const API_URL = BASE_URL;
   const POST_URL = BASE_URL;
 
   // ===== СОСТОЯНИЕ =====
   let allMessages = [];
+  let msgIds = new Set();
   let currentUserId = null;
   let geoCache = {};
+  let userMap = {}; // для хранения данных о пользователях
 
   // ===== DOM =====
   const userListItems = document.getElementById('userListItems');
@@ -369,33 +371,9 @@
     }
   }
 
-  // ===== ЗАГРУЗКА ВСЕХ СООБЩЕНИЙ (как в примере) =====
-  function loadAllMessages() {
-    fetch(API_URL, { cache: 'no-cache' })
-      .then(r => {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-      })
-      .then(data => {
-        if (data.error) throw new Error(data.error);
-        allMessages = data.messages || [];
-        buildUserList();
-        if (currentUserId) {
-          renderMessagesForUser(currentUserId);
-          updateUserInfo(currentUserId);
-        }
-        setStatus('Обновлено ' + new Date().toLocaleTimeString(), false);
-      })
-      .catch(err => {
-        console.error('Ошибка загрузки:', err);
-        setStatus('Ошибка загрузки: ' + err.message, true);
-        userListItems.innerHTML = `<div style="color:#ef4444;padding:12px;">Ошибка загрузки. <button onclick="loadAllMessages()" style="background:#ff385c;color:white;border:none;padding:4px 12px;border-radius:12px;cursor:pointer;">Повторить</button></div>`;
-      });
-  }
-
   // ===== ПОСТРОЕНИЕ СПИСКА ДИАЛОГОВ =====
   function buildUserList() {
-    const userMap = {};
+    userMap = {};
     allMessages.forEach(m => {
       if (!m.userID || m.userID === 'manager') return;
       if (!userMap[m.userID]) {
@@ -405,7 +383,9 @@
           phone: m.phone || '—',
           count: 0,
           lastMsg: '',
-          lastTimestamp: ''
+          lastTimestamp: '',
+          geo: null, // будет заполнено позже
+          geoLoaded: false
         };
       }
       const u = userMap[m.userID];
@@ -439,11 +419,35 @@
           <div class="user-contact"><i class="fas fa-ip"></i> ${escHtml(info.ip)}</div>
           <div class="user-contact"><i class="fas fa-envelope"></i> ${escHtml(info.email)}</div>
           <div class="user-contact"><i class="fas fa-phone"></i> ${escHtml(info.phone)}</div>
+          <div class="user-geo" id="geo-${uid}"><i class="fas fa-spinner fa-spin"></i> Определение...</div>
           <div class="last-msg">${escHtml(info.lastMsg.substring(0,40))}</div>
         </div>
       `;
     });
     userListItems.innerHTML = html;
+
+    // Загружаем гео для каждого пользователя
+    userIds.forEach(uid => {
+      const info = userMap[uid];
+      if (info.ip && info.ip !== '—' && info.ip !== 'unknown') {
+        fetchGeo(info.ip).then(geo => {
+          if (geo) {
+            info.geo = geo;
+            const geoEl = document.getElementById(`geo-${uid}`);
+            if (geoEl) {
+              const flag = geo.country ? getFlagEmoji(geo.country) : '';
+              geoEl.innerHTML = `${flag} ${escHtml(geo.country)}${geo.city ? ', ' + escHtml(geo.city) : ''}`;
+            }
+          } else {
+            const geoEl = document.getElementById(`geo-${uid}`);
+            if (geoEl) geoEl.textContent = '🌍 Неизвестно';
+          }
+        });
+      } else {
+        const geoEl = document.getElementById(`geo-${uid}`);
+        if (geoEl) geoEl.textContent = '🌍 Нет IP';
+      }
+    });
 
     // Обработчики кликов
     document.querySelectorAll('.dialog-item').forEach(el => {
@@ -468,6 +472,14 @@
     }
   }
 
+  // ===== ВСПОМОГАТЕЛЬНАЯ ДЛЯ ФЛАГОВ =====
+  function getFlagEmoji(country) {
+    if (!country) return '';
+    const code = country.slice(0,2).toUpperCase();
+    const flag = code.split('').map(c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)).join('');
+    return flag;
+  }
+
   // ===== ОБНОВЛЕНИЕ ИНФОРМАЦИИ О ПОЛЬЗОВАТЕЛЕ =====
   function updateUserInfo(uid) {
     const msgs = allMessages.filter(m => m.userID === uid);
@@ -481,8 +493,9 @@
     if (last.ip && last.ip !== 'unknown' && last.ip !== '—') {
       fetchGeo(last.ip).then(geo => {
         if (geo) {
+          const flag = getFlagEmoji(geo.country);
           userGeo.innerHTML = `
-            <i class="fas fa-map-marker-alt"></i> ${escHtml(geo.country)}${geo.city ? ', ' + escHtml(geo.city) : ''}${geo.region ? ' (' + escHtml(geo.region) + ')' : ''}
+            <i class="fas fa-map-marker-alt"></i> ${flag} ${escHtml(geo.country)}${geo.city ? ', ' + escHtml(geo.city) : ''}${geo.region ? ' (' + escHtml(geo.region) + ')' : ''}
             ${geo.isp ? ' | ' + escHtml(geo.isp) : ''}
           `;
         } else {
@@ -494,19 +507,22 @@
     }
   }
 
-  // ===== ОТОБРАЖЕНИЕ СООБЩЕНИЙ В ДИАЛОГЕ =====
+  // ===== ИНКРЕМЕНТАЛЬНОЕ ДОБАВЛЕНИЕ СООБЩЕНИЙ =====
   function renderMessagesForUser(uid) {
     const userMessages = allMessages.filter(m => m.userID === uid || (m.userID === 'manager' && m.targetUserID === uid));
     if (userMessages.length === 0) {
       messagesArea.innerHTML = '<div class="empty-state"><i class="fas fa-comment-dots"></i><p>Нет сообщений в этом диалоге</p></div>';
       return;
     }
+
+    // Полностью перерисовываем только при первом открытии диалога или если сообщений нет
+    // Для простоты будем перерисовывать всё при смене диалога (это нормально, не часто)
     let html = '';
     userMessages.forEach(m => {
       const isManager = (m.userID === 'manager');
       const timeStr = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       html += `
-        <div class="msg ${isManager ? 'manager' : ''}">
+        <div class="msg ${isManager ? 'manager' : ''}" data-msgid="${escHtml(m.msgId)}">
           <div class="msg-meta">
             <span class="name">${escHtml(m.userName)}</span>
             <span class="time">${escHtml(timeStr)}</span>
@@ -529,6 +545,110 @@
         }
       });
     });
+  }
+
+  // ===== ЗАГРУЗКА НОВЫХ СООБЩЕНИЙ (инкрементальная) =====
+  function loadNewMessages() {
+    fetch(API_URL, { cache: 'no-cache' })
+      .then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(data => {
+        if (data.error) throw new Error(data.error);
+        const serverMessages = data.messages || [];
+        let newCount = 0;
+        serverMessages.forEach(m => {
+          if (!msgIds.has(m.msgId)) {
+            msgIds.add(m.msgId);
+            allMessages.push(m);
+            newCount++;
+          }
+        });
+
+        if (newCount > 0) {
+          // Обновляем список диалогов (перестраиваем)
+          buildUserList();
+          // Если есть открытый диалог, обновляем его сообщения без перерисовки всего (добавляем новые)
+          if (currentUserId) {
+            // Находим сообщения для текущего пользователя
+            const userMsgs = allMessages.filter(m => m.userID === currentUserId || (m.userID === 'manager' && m.targetUserID === currentUserId));
+            // Обновляем только если есть новые
+            const existing = messagesArea.querySelectorAll('.msg');
+            const existingIds = new Set();
+            existing.forEach(el => {
+              const id = el.dataset.msgid;
+              if (id) existingIds.add(id);
+            });
+            let added = 0;
+            userMsgs.forEach(m => {
+              if (!existingIds.has(m.msgId)) {
+                // Добавляем новое сообщение
+                const isManager = (m.userID === 'manager');
+                const timeStr = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const div = document.createElement('div');
+                div.className = 'msg ' + (isManager ? 'manager' : '');
+                div.dataset.msgid = m.msgId;
+                div.innerHTML = `
+                  <div class="msg-meta">
+                    <span class="name">${escHtml(m.userName)}</span>
+                    <span class="time">${escHtml(timeStr)}</span>
+                    ${!isManager ? `<button class="delete-btn" data-msgid="${escHtml(m.msgId)}">🗑</button>` : ''}
+                  </div>
+                  <div class="bubble">${escHtml(m.message)}</div>
+                `;
+                messagesArea.appendChild(div);
+                added++;
+                // Добавляем обработчик удаления
+                const delBtn = div.querySelector('.delete-btn');
+                if (delBtn) {
+                  delBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const msgId = this.dataset.msgid;
+                    if (confirm('Удалить это сообщение?')) {
+                      deleteMessage(msgId);
+                    }
+                  });
+                }
+              }
+            });
+            if (added > 0) {
+              messagesArea.scrollTop = messagesArea.scrollHeight;
+            }
+          }
+        }
+        setStatus('Обновлено ' + new Date().toLocaleTimeString(), false);
+      })
+      .catch(err => {
+        console.error('Ошибка загрузки:', err);
+        setStatus('Ошибка загрузки: ' + err.message, true);
+      });
+  }
+
+  // ===== ПЕРВИЧНАЯ ЗАГРУЗКА =====
+  function loadAllMessages() {
+    fetch(API_URL, { cache: 'no-cache' })
+      .then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(data => {
+        if (data.error) throw new Error(data.error);
+        const serverMessages = data.messages || [];
+        allMessages = serverMessages;
+        serverMessages.forEach(m => msgIds.add(m.msgId));
+        buildUserList();
+        if (currentUserId) {
+          renderMessagesForUser(currentUserId);
+          updateUserInfo(currentUserId);
+        }
+        setStatus('Обновлено ' + new Date().toLocaleTimeString(), false);
+      })
+      .catch(err => {
+        console.error('Ошибка загрузки:', err);
+        setStatus('Ошибка загрузки: ' + err.message, true);
+        userListItems.innerHTML = `<div style="color:#ef4444;padding:12px;">Ошибка загрузки. <button onclick="loadAllMessages()" style="background:#ff385c;color:white;border:none;padding:4px 12px;border-radius:12px;cursor:pointer;">Повторить</button></div>`;
+      });
   }
 
   // ===== УДАЛЕНИЕ СООБЩЕНИЯ =====
@@ -607,7 +727,8 @@
     .then(() => {
       setStatus('✅ Отправлено', false);
       msgInput.value = '';
-      setTimeout(loadAllMessages, 800);
+      // После отправки подгружаем новые сообщения (инкрементально)
+      setTimeout(loadNewMessages, 800);
     })
     .catch(err => {
       setStatus('❌ Ошибка: ' + err.message, true);
@@ -626,11 +747,11 @@
       sendMessage();
     }
   });
-  refreshBtn.addEventListener('click', () => loadAllMessages());
+  refreshBtn.addEventListener('click', () => loadNewMessages());
 
   // ===== ЗАПУСК =====
   loadAllMessages();
-  setInterval(loadAllMessages, 5000);
+  setInterval(loadNewMessages, 5000);
 </script>
 </body>
 </html>
