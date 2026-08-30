@@ -2,9 +2,24 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Чат</title>
+  <title>Чат поддержки</title>
   <style>
-    /* стили из предыдущего */
+    body { font-family: Arial; max-width: 600px; margin: 20px auto; padding: 10px; }
+    #chat { border:1px solid #ccc; border-radius: 12px; padding: 16px; background: #f9f9f9; }
+    #messages { height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: white; border-radius: 8px; margin-bottom: 12px; }
+    .msg { margin: 6px 0; }
+    .msg .name { font-weight: bold; color: #1a73e8; }
+    .msg .time { font-size: 0.75rem; color: #888; margin-left: 8px; }
+    .msg .text { background: #e9ecef; padding: 4px 12px; border-radius: 12px; display: inline-block; max-width: 80%; }
+    .msg.own .text { background: #d2e3fc; }
+    .msg.own { text-align: right; }
+    input, button { padding: 8px 12px; border-radius: 20px; border: 1px solid #ccc; margin: 4px 0; }
+    #input-area { display: flex; gap: 8px; flex-wrap: wrap; }
+    #nameInput { flex: 1; min-width: 100px; }
+    #msgInput { flex: 3; min-width: 200px; }
+    #sendBtn { background: #1a73e8; color: white; border: none; padding: 8px 20px; cursor: pointer; }
+    #status { margin-top: 8px; color: green; }
+    .error { color: red; }
   </style>
 </head>
 <body>
@@ -20,82 +35,106 @@
   </div>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbz6w7mW7X8tyu4ftMNmXlJVSbyQuSEx-amlXY_dmlRQzvktlDmfucAFC6mNCtTp5HFZ/exec';
-    
+    // ===== НАСТРОЙКИ =====
+    const BASE_URL = 'https://script.google.com/macros/s/ВАШ_НОВЫЙ_URL/exec'; // замените на ваш URL
+
     // Генерируем или получаем userID
     let userID = localStorage.getItem('chat_user_id');
     if (!userID) {
       userID = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
       localStorage.setItem('chat_user_id', userID);
     }
-    
+
+    // URL для GET с фильтром по пользователю
+    const API_URL = BASE_URL + '?user=' + encodeURIComponent(userID);
+    const POST_URL = BASE_URL;
+
+    // ===== DOM =====
     const messagesDiv = document.getElementById('messages');
     const nameInput = document.getElementById('nameInput');
     const msgInput = document.getElementById('msgInput');
     const sendBtn = document.getElementById('sendBtn');
     const statusDiv = document.getElementById('status');
-    
+
+    // ===== Загрузка истории =====
     function loadMessages() {
-      const url = API_URL + '?userID=' + encodeURIComponent(userID);
-      fetch(url)
-        .then(r => r.json())
-        .then(data => {
-          if (data.error) { statusDiv.textContent = 'Ошибка: ' + data.error; return; }
-          renderMessages(data.messages || []);
-          statusDiv.textContent = 'Обновлено ' + new Date().toLocaleTimeString();
+      fetch(API_URL)
+        .then(response => {
+          if (!response.ok) throw new Error('HTTP ' + response.status);
+          return response.json();
         })
-        .catch(err => statusDiv.textContent = 'Ошибка загрузки: ' + err.message);
+        .then(data => {
+          if (data.error) {
+            statusDiv.textContent = 'Ошибка: ' + data.error;
+            statusDiv.className = 'error';
+            return;
+          }
+          const msgs = data.messages || [];
+          renderMessages(msgs);
+          statusDiv.textContent = 'Обновлено ' + new Date().toLocaleTimeString();
+          statusDiv.className = '';
+        })
+        .catch(err => {
+          statusDiv.textContent = 'Ошибка загрузки: ' + err.message;
+          statusDiv.className = 'error';
+        });
     }
-    
+
     function renderMessages(msgs) {
-      const name = nameInput.value.trim() || 'Гость';
+      const currentName = nameInput.value.trim();
       messagesDiv.innerHTML = msgs.map(m => {
-        const isOwn = (m.userID === userID);
-        const isManager = (m.userID === 'manager');
-        return `<div class="msg ${isOwn ? 'own' : ''} ${isManager ? 'support' : ''}">
-          <span class="name">${m.userName}</span>
+        const isOwn = (m.name === currentName);
+        return `<div class="msg ${isOwn ? 'own' : ''}">
+          <span class="name">${m.name}</span>
           <span class="time">${new Date(m.timestamp).toLocaleTimeString()}</span>
-          <div class="text">${m.message}</div>
+          <div class="text">${m.value}</div>
         </div>`;
       }).join('');
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
-    
+
+    // ===== Отправка сообщения =====
     function sendMessage() {
       const name = nameInput.value.trim() || 'Гость';
       const text = msgInput.value.trim();
       if (!text) return;
-      
+
       const payload = {
         userID: userID,
-        userName: name,
-        message: text,
-        isResponse: false
+        name: name,
+        value: text
       };
-      
+
       statusDiv.textContent = 'Отправка...';
-      fetch(API_URL, {
+      statusDiv.className = '';
+
+      fetch(POST_URL, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
       .then(() => {
-        statusDiv.textContent = 'Отправлено!';
+        statusDiv.textContent = '✅ Отправлено!';
         setTimeout(loadMessages, 1000);
       })
-      .catch(err => statusDiv.textContent = 'Ошибка: ' + err.message);
-      
+      .catch(err => {
+        statusDiv.textContent = '❌ Ошибка: ' + err.message;
+        statusDiv.className = 'error';
+      });
+
       msgInput.value = '';
     }
-    
-    sendBtn.onclick = sendMessage;
+
+    // ===== События =====
+    sendBtn.addEventListener('click', sendMessage);
     msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
-    
+
+    // ===== Инициализация =====
     loadMessages();
     setInterval(loadMessages, 5000);
-    
-    // сохраняем имя
+
+    // Сохраняем имя в localStorage
     nameInput.addEventListener('change', function() {
       localStorage.setItem('chat_username', this.value);
     });
