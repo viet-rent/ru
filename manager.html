@@ -4,116 +4,198 @@
   <meta charset="UTF-8">
   <title>Панель менеджера</title>
   <style>
-    body { font-family: Arial; max-width: 800px; margin: 20px auto; padding: 10px; }
-    #messages { height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; background: #f9f9f9; border-radius: 8px; margin-bottom: 12px; }
-    .msg { margin: 6px 0; padding: 4px; border-bottom: 1px solid #eee; }
-    .msg .name { font-weight: bold; }
-    .msg .time { font-size: 0.8rem; color: #888; }
-    .msg .userid { font-size: 0.7rem; color: #666; }
-    input, select, button { padding: 8px; margin: 4px 0; border-radius: 8px; border: 1px solid #ccc; }
-    #reply-area { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    #replyInput { flex: 3; min-width: 200px; }
-    #sendReply { background: #28a745; color: white; border: none; padding: 8px 20px; cursor: pointer; }
+    body { font-family: Arial; max-width: 900px; margin: 20px auto; padding: 10px; }
+    #container { display: flex; gap: 20px; min-height: 500px; }
+    #userList { width: 220px; border-right: 1px solid #ccc; padding-right: 15px; overflow-y: auto; max-height: 600px; }
+    #chatArea { flex: 1; }
+    .dialog-item { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
+    .dialog-item:hover { background: #f0f0f0; }
+    .dialog-item.active { background: #d2e3fc; font-weight: bold; }
+    #messages { height: 350px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: white; border-radius: 8px; margin-bottom: 12px; }
+    .msg { margin: 6px 0; }
+    .msg .name { font-weight: bold; color: #1a73e8; }
+    .msg .time { font-size: 0.75rem; color: #888; margin-left: 8px; }
+    .msg .text { background: #e9ecef; padding: 4px 12px; border-radius: 12px; display: inline-block; max-width: 80%; }
+    .msg.manager .text { background: #ffd966; } /* выделение ответов менеджера */
+    #input-area { display: flex; gap: 8px; }
+    #msgInput { flex: 1; padding: 8px 12px; border-radius: 20px; border: 1px solid #ccc; }
+    #sendBtn { background: #1a73e8; color: white; border: none; padding: 8px 20px; border-radius: 20px; cursor: pointer; }
+    #sendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
     #status { margin-top: 8px; color: green; }
     .error { color: red; }
+    #currentUser { font-weight: bold; margin-bottom: 10px; }
+    .back-btn { margin-bottom: 10px; padding: 6px 12px; background: #eee; border: none; border-radius: 12px; cursor: pointer; }
+    .back-btn:hover { background: #ddd; }
   </style>
 </head>
 <body>
   <h2>Панель менеджера</h2>
-  <div id="messages"></div>
-  <div id="reply-area">
-    <select id="userSelect" style="flex:1; min-width:150px;">
-      <option value="">Выберите пользователя</option>
-    </select>
-    <input type="text" id="replyInput" placeholder="Введите ответ..." style="flex:3; min-width:200px;">
-    <button id="sendReply">Отправить ответ</button>
+  <div id="container">
+    <div id="userList">
+      <h3>Диалоги</h3>
+      <div id="userListItems"></div>
+    </div>
+    <div id="chatArea">
+      <div id="currentUser"></div>
+      <div id="messages"></div>
+      <div id="input-area">
+        <input type="text" id="msgInput" placeholder="Напишите ответ..." disabled>
+        <button id="sendBtn" disabled>Отправить</button>
+      </div>
+      <div id="status"></div>
+    </div>
   </div>
-  <div id="status"></div>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbz6w7mW7X8tyu4ftMNmXlJVSbyQuSEx-amlXY_dmlRQzvktlDmfucAFC6mNCtTp5HFZ/exec';
-    const messagesDiv = document.getElementById('messages');
-    const userSelect = document.getElementById('userSelect');
-    const replyInput = document.getElementById('replyInput');
-    const sendReplyBtn = document.getElementById('sendReply');
-    const statusDiv = document.getElementById('status');
+    // ===== НАСТРОЙКИ =====
+    const BASE_URL = 'https://script.google.com/macros/s/ВАШ_НОВЫЙ_URL/exec'; // замените на ваш URL
+    const API_URL = BASE_URL; // без параметра user — получаем все сообщения
+    const POST_URL = BASE_URL;
 
-    function loadMessages() {
-      fetch(API_URL) // без userID, получаем все
-        .then(r => r.json())
-        .then(data => {
-          if (data.error) { statusDiv.textContent = 'Ошибка: ' + data.error; return; }
-          renderMessages(data.messages || []);
-          updateUserSelect(data.messages || []);
-          statusDiv.textContent = 'Обновлено ' + new Date().toLocaleTimeString();
+    let allMessages = [];
+    let users = [];
+    let currentUserId = null;
+
+    // DOM
+    const userListItems = document.getElementById('userListItems');
+    const messagesDiv = document.getElementById('messages');
+    const msgInput = document.getElementById('msgInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const statusDiv = document.getElementById('status');
+    const currentUserDiv = document.getElementById('currentUser');
+
+    // ===== Загрузка всех сообщений =====
+    function loadAllMessages() {
+      fetch(API_URL)
+        .then(r => {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
         })
-        .catch(err => statusDiv.textContent = 'Ошибка загрузки: ' + err.message);
+        .then(data => {
+          if (data.error) {
+            statusDiv.textContent = 'Ошибка: ' + data.error;
+            statusDiv.className = 'error';
+            return;
+          }
+          allMessages = data.messages || [];
+          buildUserList();
+          if (currentUserId) {
+            renderMessagesForUser(currentUserId);
+          }
+          statusDiv.textContent = 'Обновлено ' + new Date().toLocaleTimeString();
+          statusDiv.className = '';
+        })
+        .catch(err => {
+          statusDiv.textContent = 'Ошибка загрузки: ' + err.message;
+          statusDiv.className = 'error';
+        });
     }
 
-    function renderMessages(msgs) {
-      messagesDiv.innerHTML = msgs.map(m => {
-        const isManager = (m.userID === 'manager');
-        return `<div class="msg" style="${isManager ? 'background: #d4edda;' : ''}">
-          <span class="name">${m.userName}</span>
-          <span class="userid">(${m.userID})</span>
+    // ===== Построение списка пользователей =====
+    function buildUserList() {
+      const userSet = new Set();
+      allMessages.forEach(m => {
+        if (m.userID) userSet.add(m.userID);
+      });
+      users = Array.from(userSet);
+      if (users.length === 0) {
+        userListItems.innerHTML = '<p style="color:#888;">Нет сообщений</p>';
+        return;
+      }
+      userListItems.innerHTML = users.map(uid => {
+        const userMsgs = allMessages.filter(m => m.userID === uid);
+        const lastMsg = userMsgs[userMsgs.length - 1];
+        const lastText = lastMsg ? lastMsg.value : '';
+        const count = userMsgs.length;
+        return `<div class="dialog-item" data-user="${uid}">
+          <div><strong>${uid}</strong> <span style="font-size:0.75rem;color:#888;">(${count})</span></div>
+          <div style="font-size:0.8rem;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${lastText.substring(0,30)}</div>
+        </div>`;
+      }).join('');
+
+      // Обработка кликов по диалогам
+      document.querySelectorAll('.dialog-item').forEach(el => {
+        el.addEventListener('click', function() {
+          const uid = this.dataset.user;
+          currentUserId = uid;
+          renderMessagesForUser(uid);
+          document.querySelectorAll('.dialog-item').forEach(d => d.classList.remove('active'));
+          this.classList.add('active');
+          currentUserDiv.textContent = 'Диалог с ' + uid;
+          msgInput.disabled = false;
+          sendBtn.disabled = false;
+          msgInput.focus();
+        });
+      });
+
+      // Если есть текущий пользователь — подсветить его
+      if (currentUserId) {
+        const activeEl = document.querySelector(`.dialog-item[data-user="${currentUserId}"]`);
+        if (activeEl) activeEl.classList.add('active');
+      }
+    }
+
+    // ===== Рендер сообщений выбранного пользователя =====
+    function renderMessagesForUser(uid) {
+      const userMessages = allMessages.filter(m => m.userID === uid);
+      if (userMessages.length === 0) {
+        messagesDiv.innerHTML = '<p style="color:#888;">Нет сообщений в этом диалоге</p>';
+        return;
+      }
+      messagesDiv.innerHTML = userMessages.map(m => {
+        const isManager = (m.name === 'Менеджер');
+        return `<div class="msg ${isManager ? 'manager' : ''}">
+          <span class="name">${m.name}</span>
           <span class="time">${new Date(m.timestamp).toLocaleTimeString()}</span>
-          <div>${m.message}</div>
-          ${m.targetUserID ? `<div style="font-size:0.8rem;color:#666;">→ для ${m.targetUserID}</div>` : ''}
+          <div class="text">${m.value}</div>
         </div>`;
       }).join('');
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
-    function updateUserSelect(msgs) {
-      const users = new Set();
-      msgs.forEach(m => {
-        if (m.userID && m.userID !== 'manager') users.add(m.userID);
-      });
-      const currentVal = userSelect.value;
-      userSelect.innerHTML = '<option value="">Выберите пользователя</option>';
-      users.forEach(id => {
-        const option = document.createElement('option');
-        option.value = id;
-        option.textContent = id;
-        userSelect.appendChild(option);
-      });
-      if (currentVal && users.has(currentVal)) userSelect.value = currentVal;
-    }
-
-    function sendReply() {
-      const targetUserID = userSelect.value;
-      const replyText = replyInput.value.trim();
-      if (!targetUserID) { statusDiv.textContent = 'Выберите пользователя'; return; }
-      if (!replyText) { statusDiv.textContent = 'Введите текст ответа'; return; }
+    // ===== Отправка ответа =====
+    function sendMessage() {
+      if (!currentUserId) {
+        alert('Выберите диалог');
+        return;
+      }
+      const text = msgInput.value.trim();
+      if (!text) return;
 
       const payload = {
-        userID: 'manager',
-        userName: 'Менеджер',
-        message: replyText,
-        targetUserID: targetUserID,
-        isResponse: true
+        userID: currentUserId,
+        name: 'Менеджер',
+        value: text
       };
 
       statusDiv.textContent = 'Отправка...';
-      fetch(API_URL, {
+      statusDiv.className = '';
+
+      fetch(POST_URL, {
         method: 'POST',
         mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
       .then(() => {
-        statusDiv.textContent = '✅ Ответ отправлен!';
-        replyInput.value = '';
-        setTimeout(loadMessages, 1000);
+        statusDiv.textContent = '✅ Отправлено!';
+        msgInput.value = '';
+        // Обновляем историю через 1 секунду
+        setTimeout(loadAllMessages, 1000);
       })
-      .catch(err => statusDiv.textContent = '❌ Ошибка: ' + err.message);
+      .catch(err => {
+        statusDiv.textContent = '❌ Ошибка: ' + err.message;
+        statusDiv.className = 'error';
+      });
     }
 
-    sendReplyBtn.onclick = sendReply;
-    replyInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendReply(); });
+    // ===== События =====
+    sendBtn.addEventListener('click', sendMessage);
+    msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
 
-    loadMessages();
-    setInterval(loadMessages, 5000);
+    // ===== Инициализация =====
+    loadAllMessages();
+    setInterval(loadAllMessages, 5000);
   </script>
 </body>
 </html>
