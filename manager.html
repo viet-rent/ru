@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
   <style>
-    /* все стили как в предыдущей версии, с добавлением для бейджа счётчика */
+    /* все стили как в предыдущей версии, без изменений */
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -326,7 +326,7 @@
 </main>
 <script>
   // ============================================================
-  //  FRONTEND MANAGER (со звуком и счётчиками непрочитанных)
+  //  FRONTEND MANAGER (с исправленным удалением)
   // ============================================================
 
   const BASE_URL = 'https://script.google.com/macros/s/AKfycbwu6iYjDr49HMdiyyZKSnaGupRYTR-1vqObxD30GjHCFrX0A3BB9ySwv4b2ZnTKaaKH/exec'; // замените на ваш GAS URL
@@ -340,7 +340,7 @@
   let geoCache = {};
   let userMap = {};
 
-  // ----- Хранилище непрочитанных (в localStorage) -----
+  // ----- Хранилище непрочитанных -----
   let unreadCounts = {};
 
   function loadUnreadCounts() {
@@ -371,7 +371,7 @@
     return unreadCounts[userId] || 0;
   }
 
-  // ----- Звук уведомления (Web Audio) -----
+  // ----- Звук уведомления -----
   function playNotificationSound() {
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -379,18 +379,13 @@
       const gainNode = audioCtx.createGain();
       oscillator.connect(gainNode);
       gainNode.connect(audioCtx.destination);
-
       oscillator.frequency.value = 600;
       oscillator.type = 'sine';
-
       gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-
       oscillator.start(audioCtx.currentTime);
       oscillator.stop(audioCtx.currentTime + 0.3);
-    } catch (e) {
-      // тихо игнорируем ошибки
-    }
+    } catch (e) {}
   }
 
   // ----- DOM -----
@@ -453,7 +448,7 @@
     return code.split('').map(c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)).join('');
   }
 
-  // ----- Список диалогов (с отображением счётчиков) -----
+  // ----- Список диалогов -----
   function buildUserList() {
     userMap = {};
     allMessages.forEach(m => {
@@ -512,7 +507,7 @@
     });
     userListItems.innerHTML = html;
 
-    // Загружаем гео
+    // Гео
     userIds.forEach(uid => {
       const info = userMap[uid];
       const geoId = 'geo-' + uid.replace(/[^a-zA-Z0-9]/g, '_');
@@ -540,7 +535,6 @@
     document.querySelectorAll('.dialog-item').forEach(el => {
       el.addEventListener('click', function() {
         const uid = this.dataset.user;
-        // Сброс счётчика при открытии диалога
         resetUnread(uid);
         currentUserId = uid;
         renderMessagesForUser(uid);
@@ -552,7 +546,6 @@
         sendBtn.disabled = false;
         deleteDialogBtn.style.display = 'inline-block';
         msgInput.focus();
-        // Перестраиваем список, чтобы обновить бейджи
         buildUserList();
       });
     });
@@ -563,7 +556,7 @@
     }
   }
 
-  // ----- Обновление информации о пользователе -----
+  // ----- Информация о пользователе -----
   function updateUserInfo(uid) {
     const msgs = allMessages.filter(m => m.userID === uid);
     if (msgs.length === 0) return;
@@ -614,7 +607,6 @@
     messagesArea.innerHTML = html;
     messagesArea.scrollTop = messagesArea.scrollHeight;
 
-    // Обработчики удаления
     document.querySelectorAll('.delete-btn').forEach(btn => {
       btn.addEventListener('click', function(e) {
         e.stopPropagation();
@@ -626,7 +618,28 @@
     });
   }
 
-  // ----- Загрузка новых сообщений (инкрементальная + счётчики + звук) -----
+  // ===== УДАЛЕНИЕ (исправленное) =====
+  function deleteMessage(msgId) {
+    fetch(POST_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', msgId: msgId })
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        setStatus('🗑 Сообщение удалено', false);
+        loadAllMessages(); // перезагружаем всё
+      } else {
+        setStatus('❌ Ошибка удаления: ' + (data.error || 'неизвестная'), true);
+      }
+    })
+    .catch(err => {
+      setStatus('❌ Ошибка удаления: ' + err.message, true);
+    });
+  }
+
+  // ----- Загрузка новых сообщений -----
   function loadNewMessages() {
     fetch(API_URL, { cache: 'no-cache' })
       .then(r => {
@@ -644,7 +657,6 @@
             msgIds.add(m.msgId);
             allMessages.push(m);
             newCount++;
-            // Если сообщение от пользователя (не менеджера) и менеджер не просматривает этот диалог
             if (m.userID !== 'manager' && m.userID !== currentUserId) {
               incrementUnread(m.userID);
               hasNew = true;
@@ -653,16 +665,10 @@
         });
 
         if (newCount > 0) {
-          if (hasNew) {
-            playNotificationSound();
-          }
+          if (hasNew) playNotificationSound();
           buildUserList();
           if (currentUserId) {
-            // Перерендерим сообщения для текущего диалога, чтобы добавить новые
-            const userMsgs = allMessages.filter(m => m.userID === currentUserId || (m.userID === 'manager' && m.targetUserID === currentUserId));
-            // Просто перерисуем всё
             renderMessagesForUser(currentUserId);
-            // Обновим информацию (гео и т.д.)
             updateUserInfo(currentUserId);
           }
         }
@@ -685,6 +691,7 @@
       .then(data => {
         if (data.error) throw new Error(data.error);
         allMessages = data.messages || [];
+        msgIds.clear();
         allMessages.forEach(m => msgIds.add(m.msgId));
         buildUserList();
         if (currentUserId) {
@@ -700,48 +707,35 @@
       });
   }
 
-  // ----- Удаление -----
-  function deleteMessage(msgId) {
-    fetch(POST_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'delete', msgId: msgId })
-    })
-    .then(() => {
-      setStatus('🗑 Сообщение удалено', false);
-      setTimeout(loadAllMessages, 500);
-    })
-    .catch(err => {
-      setStatus('❌ Ошибка удаления: ' + err.message, true);
-    });
-  }
-
+  // ----- Удаление диалога -----
   function deleteDialog() {
     if (!currentUserId) return;
     if (confirm(`Удалить весь диалог с ${currentUserId}?`)) {
       fetch(POST_URL, {
         method: 'POST',
-        mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'delete_dialog', userID: currentUserId })
       })
-      .then(() => {
-        setStatus('🗑 Диалог удалён', false);
-        currentUserId = null;
-        deleteDialogBtn.style.display = 'none';
-        currentUserTitle.textContent = 'Выберите диалог';
-        messagesArea.innerHTML = '<div class="empty-state"><i class="fas fa-comment-dots"></i><p>Выберите диалог из списка слева</p></div>';
-        userContacts.innerHTML = '';
-        userGeo.innerHTML = '';
-        msgInput.disabled = true;
-        sendBtn.disabled = true;
-        // Удаляем счётчик для этого пользователя
-        resetUnread(currentUserId);
-        setTimeout(loadAllMessages, 500);
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          setStatus('🗑 Диалог удалён', false);
+          currentUserId = null;
+          deleteDialogBtn.style.display = 'none';
+          currentUserTitle.textContent = 'Выберите диалог';
+          messagesArea.innerHTML = '<div class="empty-state"><i class="fas fa-comment-dots"></i><p>Выберите диалог из списка слева</p></div>';
+          userContacts.innerHTML = '';
+          userGeo.innerHTML = '';
+          msgInput.disabled = true;
+          sendBtn.disabled = true;
+          resetUnread(currentUserId);
+          loadAllMessages();
+        } else {
+          setStatus('❌ Ошибка удаления диалога: ' + (data.error || 'неизвестная'), true);
+        }
       })
       .catch(err => {
-        setStatus('❌ Ошибка удаления: ' + err.message, true);
+        setStatus('❌ Ошибка удаления диалога: ' + err.message, true);
       });
     }
   }
