@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
   <style>
-    /* все стили как в предыдущей версии */
+    /* все стили как раньше, с небольшим дополнением для плавного скрытия */
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -127,7 +127,6 @@
     }
     .user-info .contacts input:focus { border-color: #ff385c; }
     .user-info .contacts input::placeholder { color: #aaa; }
-    /* класс для скрытых полей (плавное исчезновение) */
     .user-info .contacts input.hidden-field {
       display: none;
     }
@@ -314,7 +313,7 @@
     </div>
     <div class="input-area">
       <div class="input-row">
-        <input type="text" id="nameInput" placeholder="Ваше имя" value="Гость">
+        <input type="text" id="nameInput" placeholder="Ваше имя" value="">
       </div>
       <div class="input-row">
         <textarea id="msgInput" placeholder="Напишите сообщение..." rows="1"></textarea>
@@ -326,7 +325,7 @@
 </main>
 <script>
   // ============================================================
-  //  FRONTEND CHAT (с автоматическим скрытием email и телефона)
+  //  FRONTEND CHAT (с правильным скрытием email/телефона)
   // ============================================================
 
   const BASE_URL = 'https://script.google.com/macros/s/AKfycbwu6iYjDr49HMdiyyZKSnaGupRYTR-1vqObxD30GjHCFrX0A3BB9ySwv4b2ZnTKaaKH/exec'; // замените на ваш GAS URL
@@ -354,6 +353,7 @@
   // ----- Состояние -----
   let messages = [];
   let msgIds = new Set();
+  let firstMessageSent = localStorage.getItem('chat_first_message_sent') === 'true';
 
   // ----- DOM -----
   const messagesArea = document.getElementById('messagesArea');
@@ -367,7 +367,8 @@
   // ===== УПРАВЛЕНИЕ ВИДИМОСТЬЮ ПОЛЕЙ =====
   function toggleFieldVisibility(input) {
     const value = input.value.trim();
-    if (value) {
+    // Скрываем только если уже отправлено первое сообщение И поле не пустое
+    if (firstMessageSent && value) {
       input.classList.add('hidden-field');
     } else {
       input.classList.remove('hidden-field');
@@ -382,7 +383,7 @@
   toggleFieldVisibility(emailInput);
   toggleFieldVisibility(phoneInput);
 
-  // Обработчики изменения
+  // Обработчики изменения (для случая, когда пользователь очистит поле после отправки)
   emailInput.addEventListener('input', function() {
     const val = this.value.trim();
     localStorage.setItem('chat_email', val);
@@ -395,7 +396,7 @@
     toggleFieldVisibility(this);
   });
 
-  // Также при изменении через автозаполнение (change)
+  // Также при изменении через автозаполнение
   emailInput.addEventListener('change', function() {
     toggleFieldVisibility(this);
   });
@@ -403,7 +404,7 @@
     toggleFieldVisibility(this);
   });
 
-  // ===== ОСТАЛЬНАЯ ЛОГИКА (без изменений) =====
+  // ===== ОСТАЛЬНАЯ ЛОГИКА =====
 
   // Восстановление имени
   const savedName = localStorage.getItem('chat_username');
@@ -535,7 +536,7 @@
     messagesArea.scrollTop = messagesArea.scrollHeight;
   }
 
-  // ----- Отправка сообщения -----
+  // ===== ОТПРАВКА СООБЩЕНИЯ (с установкой флага первого сообщения) =====
   function sendMessage() {
     const name = nameInput.value.trim() || 'Гость';
     const text = msgInput.value.trim();
@@ -546,7 +547,14 @@
     localStorage.setItem('chat_email', email);
     localStorage.setItem('chat_phone', phone);
 
-    // После отправки можно скрыть поля, если они заполнены
+    // Если это первое сообщение, то после отправки устанавливаем флаг и скрываем поля
+    if (!firstMessageSent) {
+      firstMessageSent = true;
+      localStorage.setItem('chat_first_message_sent', 'true');
+      // Если поля заполнены – они скроются при toggleFieldVisibility
+    }
+
+    // Скрываем поля, если они заполнены и это первое сообщение (или уже было отправлено)
     toggleFieldVisibility(emailInput);
     toggleFieldVisibility(phoneInput);
 
@@ -637,6 +645,14 @@
         renderAllMessages();
         const empty = messagesArea.querySelector('.empty');
         if (empty) empty.remove();
+        // Если есть сообщения, значит первое сообщение уже отправлено
+        if (!firstMessageSent) {
+          firstMessageSent = true;
+          localStorage.setItem('chat_first_message_sent', 'true');
+          // Обновим видимость полей
+          toggleFieldVisibility(emailInput);
+          toggleFieldVisibility(phoneInput);
+        }
       }
     } catch (e) {}
   }
