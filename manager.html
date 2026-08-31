@@ -326,7 +326,7 @@
 </main>
 <script>
   // ============================================================
-  //  FRONTEND MANAGER (с исправленным удалением)
+  //  FRONTEND MANAGER (с no-cors для всех POST)
   // ============================================================
 
   const BASE_URL = 'https://script.google.com/macros/s/AKfycbwu6iYjDr49HMdiyyZKSnaGupRYTR-1vqObxD30GjHCFrX0A3BB9ySwv4b2ZnTKaaKH/exec'; // замените на ваш GAS URL
@@ -618,25 +618,50 @@
     });
   }
 
-  // ===== УДАЛЕНИЕ (исправленное) =====
+  // ===== УДАЛЕНИЕ СООБЩЕНИЯ (no-cors) =====
   function deleteMessage(msgId) {
     fetch(POST_URL, {
       method: 'POST',
+      mode: 'no-cors',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'delete', msgId: msgId })
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        setStatus('🗑 Сообщение удалено', false);
-        loadAllMessages(); // перезагружаем всё
-      } else {
-        setStatus('❌ Ошибка удаления: ' + (data.error || 'неизвестная'), true);
-      }
+    .then(() => {
+      setStatus('🗑 Сообщение удалено', false);
+      setTimeout(loadAllMessages, 1000);
     })
     .catch(err => {
       setStatus('❌ Ошибка удаления: ' + err.message, true);
     });
+  }
+
+  // ===== УДАЛЕНИЕ ДИАЛОГА (no-cors) =====
+  function deleteDialog() {
+    if (!currentUserId) return;
+    if (confirm(`Удалить весь диалог с ${currentUserId}?`)) {
+      fetch(POST_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_dialog', userID: currentUserId })
+      })
+      .then(() => {
+        setStatus('🗑 Диалог удалён', false);
+        currentUserId = null;
+        deleteDialogBtn.style.display = 'none';
+        currentUserTitle.textContent = 'Выберите диалог';
+        messagesArea.innerHTML = '<div class="empty-state"><i class="fas fa-comment-dots"></i><p>Выберите диалог из списка слева</p></div>';
+        userContacts.innerHTML = '';
+        userGeo.innerHTML = '';
+        msgInput.disabled = true;
+        sendBtn.disabled = true;
+        resetUnread(currentUserId);
+        setTimeout(loadAllMessages, 1000);
+      })
+      .catch(err => {
+        setStatus('❌ Ошибка удаления диалога: ' + err.message, true);
+      });
+    }
   }
 
   // ----- Загрузка новых сообщений -----
@@ -707,40 +732,7 @@
       });
   }
 
-  // ----- Удаление диалога -----
-  function deleteDialog() {
-    if (!currentUserId) return;
-    if (confirm(`Удалить весь диалог с ${currentUserId}?`)) {
-      fetch(POST_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete_dialog', userID: currentUserId })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          setStatus('🗑 Диалог удалён', false);
-          currentUserId = null;
-          deleteDialogBtn.style.display = 'none';
-          currentUserTitle.textContent = 'Выберите диалог';
-          messagesArea.innerHTML = '<div class="empty-state"><i class="fas fa-comment-dots"></i><p>Выберите диалог из списка слева</p></div>';
-          userContacts.innerHTML = '';
-          userGeo.innerHTML = '';
-          msgInput.disabled = true;
-          sendBtn.disabled = true;
-          resetUnread(currentUserId);
-          loadAllMessages();
-        } else {
-          setStatus('❌ Ошибка удаления диалога: ' + (data.error || 'неизвестная'), true);
-        }
-      })
-      .catch(err => {
-        setStatus('❌ Ошибка удаления диалога: ' + err.message, true);
-      });
-    }
-  }
-
-  // ----- Отправка ответа -----
+  // ----- Отправка ответа (no-cors) -----
   function sendMessage() {
     if (!currentUserId) return;
     const text = msgInput.value.trim();
