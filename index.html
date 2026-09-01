@@ -46,9 +46,6 @@
         .list-container-wrapper.loading .list-loader { display: block; }
         .list-loader i { font-size: 32px; margin-bottom: 12px; display: block; }
         .list-loader span { font-size: 16px; }
-        .load-more { text-align: center; padding: 16px; color: #717171; font-size: 14px; display: none; flex-shrink: 0; }
-        .load-more.show { display: block; }
-        .load-more i { margin-right: 8px; }
         .listing-card-link { display: block; text-decoration: none; color: inherit; }
         .listing-card { display: flex; gap: 12px; background: white; border-radius: 12px; padding: 12px; margin-bottom: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border: 1px solid #ebebeb; transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s; cursor: pointer; }
         .listing-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-2px); }
@@ -82,7 +79,54 @@
         .progress-bar { width: 100%; height: 4px; background: #f0f0f0; margin: 0 0 12px 0; border-radius: 2px; overflow: hidden; flex-shrink: 0; }
         .progress-bar .fill { height: 100%; background: #ff385c; width: 0%; transition: width 0.2s; }
 
-        /* ===== СТИЛИ ДЛЯ ЧАТА (как в других страницах) ===== */
+        /* ===== СТИЛИ ДЛЯ ПАГИНАЦИИ ===== */
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            padding: 12px 0 4px 0;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+        .pagination-container button {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            color: #222;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 36px;
+            text-align: center;
+        }
+        .pagination-container button:hover:not(:disabled) {
+            background: #f7f7f7;
+            border-color: #ff385c;
+        }
+        .pagination-container button.active {
+            background: #ff385c;
+            color: white;
+            border-color: #ff385c;
+            font-weight: 600;
+        }
+        .pagination-container button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .pagination-container .page-info {
+            font-size: 13px;
+            color: #717171;
+            padding: 0 8px;
+        }
+        .pagination-container .dots {
+            padding: 0 4px;
+            color: #717171;
+            font-size: 13px;
+        }
+
+        /* ===== СТИЛИ ДЛЯ ЧАТА ===== */
         .chat-fab {
             position: fixed;
             bottom: 30px;
@@ -145,7 +189,6 @@
             50% { transform: scale(1.15); }
             100% { transform: scale(1); }
         }
-
         .chat-toast {
             position: fixed;
             top: 24px;
@@ -216,21 +259,21 @@
             color: #fff;
         }
 
-        /* ===== МОБИЛЬНАЯ ВЕРСИЯ (ПЕРЕДЕЛАНА) ===== */
+        /* ===== МОБИЛЬНАЯ ВЕРСИЯ ===== */
         @media (max-width: 768px) {
             .main {
                 flex-direction: column;
-                height: 100vh; /* фиксируем высоту */
+                height: 100vh;
                 overflow: hidden;
             }
             .list-panel {
                 width: 100%;
                 min-width: unset;
-                height: 50vh; /* верхняя половина */
+                height: 50vh;
                 border-right: none;
                 border-bottom: 1px solid #ebebeb;
                 padding: 8px;
-                overflow: hidden; /* убираем прокрутку всего блока */
+                overflow: hidden;
                 display: flex;
                 flex-direction: row;
                 gap: 8px;
@@ -243,7 +286,7 @@
                 flex-shrink: 0;
             }
             .filters-panel {
-                flex: 0 0 160px; /* ширина фильтров справа */
+                flex: 0 0 160px;
                 margin-bottom: 0;
                 padding: 10px 8px;
                 border-radius: 12px;
@@ -310,7 +353,7 @@
                 flex-shrink: 0;
             }
             .map-panel {
-                height: 50vh; /* карта внизу */
+                height: 50vh;
                 width: 100%;
                 flex: none;
             }
@@ -326,7 +369,7 @@
                 font-size: 12px;
             }
             .listing-card {
-                flex-direction: row; /* на мобильных оставляем строку для экономии места */
+                flex-direction: row;
                 padding: 8px;
                 gap: 8px;
                 margin-bottom: 8px;
@@ -357,10 +400,6 @@
                 line-height: 34px !important;
                 font-size: 11px;
             }
-            .load-more {
-                font-size: 12px;
-                padding: 10px;
-            }
             .chat-fab {
                 bottom: 16px;
                 right: 16px;
@@ -388,11 +427,19 @@
                 height: 40px;
                 font-size: 24px;
             }
+            .pagination-container button {
+                font-size: 11px;
+                padding: 4px 8px;
+                min-width: 30px;
+            }
+            .pagination-container .page-info {
+                font-size: 11px;
+            }
         }
 
         @media (max-width: 480px) {
             .filters-panel {
-                flex: 0 0 130px; /* ещё уже */
+                flex: 0 0 130px;
                 padding: 6px 4px;
             }
             .filters-panel .filter-label {
@@ -420,6 +467,11 @@
             .listing-card .info .guests {
                 font-size: 10px;
             }
+            .pagination-container button {
+                font-size: 10px;
+                padding: 3px 6px;
+                min-width: 26px;
+            }
         }
     </style>
 </head>
@@ -434,7 +486,7 @@
 
 <div class="main">
     <div class="list-panel" id="listPanel">
-        <!-- Фильтры – справа на мобильных, сверху на десктопе -->
+        <!-- Фильтры (справа на мобильных) -->
         <div class="filters-panel" id="filtersPanel">
             <div class="filter-row">
                 <span class="filter-label">Сорт.</span>
@@ -471,7 +523,7 @@
             </div>
         </div>
 
-        <!-- Контейнер со списком (слева на мобильных) -->
+        <!-- Контейнер со списком -->
         <div class="list-container-wrapper" id="listWrapper">
             <div class="results-count" id="resultsCount">Загрузка...</div>
             <div class="list-content" id="listContainer">
@@ -481,7 +533,8 @@
                 <i class="fas fa-spinner fa-pulse"></i>
                 <span>Загрузка объектов...</span>
             </div>
-            <div class="load-more" id="loadMore"><i class="fas fa-spinner fa-pulse"></i>Загрузка ещё...</div>
+            <!-- Пагинация -->
+            <div class="pagination-container" id="paginationContainer"></div>
         </div>
     </div>
 
@@ -495,7 +548,7 @@
         // === КОНФИГУРАЦИЯ ===
         const PATTAYA_CENTER = [10.2333, 103.9667];
         const DEFAULT_ZOOM = 11;
-        const LIST_BATCH_SIZE = 40;
+        const ITEMS_PER_PAGE = 20; // количество объектов на страницу
 
         // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
         let allListings = [];
@@ -509,16 +562,16 @@
         let selectedObjectIndex = -1;
         let listUpdateTimeout = null;
         let visibleListings = [];
-        let listPage = 0;
-        let isLoadingMore = false;
+        let currentPage = 1;
+        let totalPages = 1;
         let isDataLoaded = false;
         let isUpdatingList = false;
 
         const listWrapper = document.getElementById('listWrapper');
         const listContainer = document.getElementById('listContainer');
         const resultsCount = document.getElementById('resultsCount');
-        const loadMoreEl = document.getElementById('loadMore');
         const listLoader = document.getElementById('listLoader');
+        const paginationContainer = document.getElementById('paginationContainer');
         const sortSelect = document.getElementById('sortSelect');
         const guestsFilter = document.getElementById('guestsFilter');
         const priceMin = document.getElementById('priceMin');
@@ -526,7 +579,7 @@
         const applyBtn = document.getElementById('applyFilters');
         const resetBtn = document.getElementById('resetFilters');
 
-        // === ФУНКЦИЯ ПРЕОБРАЗОВАНИЯ СЖАТОГО ОБЪЕКТА В ПОЛНЫЙ ===
+        // === ФУНКЦИЯ ПРЕОБРАЗОВАНИЯ СЖАТОГО ОБЪЕКТА ===
         function expandItem(item) {
             if (Array.isArray(item)) {
                 return item.map(i => expandItem(i));
@@ -547,7 +600,7 @@
             };
         }
 
-        // === ЗАГРУЗКА ДАННЫХ (автоопределение файла) ===
+        // === ЗАГРУЗКА ДАННЫХ ===
         async function loadData() {
             const files = ['data.json', 'listings.json'];
             let data = null;
@@ -561,9 +614,7 @@
                         loadedFile = file;
                         break;
                     }
-                } catch (e) {
-                    // Пробуем следующий файл
-                }
+                } catch (e) {}
             }
 
             if (data) {
@@ -573,7 +624,7 @@
                 initApp();
                 console.log(`Данные загружены из ${loadedFile}`);
             } else {
-                console.error('Ошибка загрузки данных: не найден ни data.json, ни listings.json');
+                console.error('Ошибка загрузки данных');
                 listContainer.innerHTML = `
                     <div class="no-results">
                         <i class="fas fa-exclamation-triangle"></i>
@@ -612,7 +663,7 @@
                 listUpdateTimeout = setTimeout(() => {
                     currentBounds = map.getBounds();
                     startListUpdate();
-                    updateList(false);
+                    updateVisibleList();
                     if (pendingHighlightIndex !== -1) {
                         highlightCard(pendingHighlightIndex);
                         pendingHighlightIndex = -1;
@@ -632,26 +683,15 @@
                 }
             });
 
-            const listPanel = document.getElementById('listPanel');
-            listPanel.addEventListener('scroll', function() {
-                // на мобильных список прокручивается внутри .list-content, поэтому здесь не нужно
-            });
-
-            // Отслеживаем прокрутку списка для подгрузки
-            listContainer.addEventListener('scroll', function() {
-                if (listContainer.scrollTop + listContainer.clientHeight >= listContainer.scrollHeight - 100) {
-                    loadMoreListItems();
-                }
-            });
-
             applyBtn.addEventListener('click', function() {
                 applyFiltersAndSort();
                 highlightedIndex = -1;
                 pendingHighlightIndex = -1;
                 selectedObjectIndex = -1;
+                currentPage = 1;
                 buildClusters();
                 startListUpdate();
-                updateList(true);
+                updateVisibleList();
                 finishListUpdate();
             });
 
@@ -664,9 +704,10 @@
                 highlightedIndex = -1;
                 pendingHighlightIndex = -1;
                 selectedObjectIndex = -1;
+                currentPage = 1;
                 buildClusters();
                 startListUpdate();
-                updateList(true);
+                updateVisibleList();
                 finishListUpdate();
             });
 
@@ -675,9 +716,10 @@
                 highlightedIndex = -1;
                 pendingHighlightIndex = -1;
                 selectedObjectIndex = -1;
+                currentPage = 1;
                 buildClusters();
                 startListUpdate();
-                updateList(true);
+                updateVisibleList();
                 finishListUpdate();
             });
 
@@ -686,9 +728,10 @@
                 highlightedIndex = -1;
                 pendingHighlightIndex = -1;
                 selectedObjectIndex = -1;
+                currentPage = 1;
                 buildClusters();
                 startListUpdate();
-                updateList(true);
+                updateVisibleList();
                 finishListUpdate();
             });
 
@@ -699,7 +742,7 @@
                 currentBounds = map.getBounds();
                 startListUpdate();
                 buildClusters();
-                updateList(true);
+                updateVisibleList();
                 document.getElementById('progressFill')?.style.setProperty('width', '100%');
                 finishListUpdate();
             }, 200);
@@ -733,6 +776,192 @@
 
             filteredListings = result;
             resultsCount.innerHTML = `Найдено <strong>${filteredListings.length}</strong> объектов`;
+            updatePagination();
+        }
+
+        // === ОБНОВЛЕНИЕ ВИДИМОГО СПИСКА (с учётом карты и пагинации) ===
+        function updateVisibleList() {
+            if (!map || !isDataLoaded) return;
+            const bounds = map.getBounds();
+            currentBounds = bounds;
+
+            let visible = filteredListings.filter(item => {
+                const lat = parseFloat(item.lat);
+                const lng = parseFloat(item.lng);
+                if (isNaN(lat) || isNaN(lng)) return false;
+                return bounds.contains([lat, lng]);
+            });
+
+            if (selectedObjectIndex !== -1 && visible.length > 0) {
+                const selectedItem = filteredListings[selectedObjectIndex];
+                if (selectedItem) {
+                    const pos = visible.indexOf(selectedItem);
+                    if (pos !== -1) {
+                        visible.splice(pos, 1);
+                        visible.unshift(selectedItem);
+                    }
+                }
+                selectedObjectIndex = -1;
+            }
+
+            visibleListings = visible;
+            totalPages = Math.ceil(visibleListings.length / ITEMS_PER_PAGE) || 1;
+            if (currentPage > totalPages) currentPage = totalPages;
+            updatePagination();
+            renderPage(currentPage);
+        }
+
+        // === ОТРИСОВКА СТРАНИЦЫ ===
+        function renderPage(page) {
+            const start = (page - 1) * ITEMS_PER_PAGE;
+            const end = Math.min(start + ITEMS_PER_PAGE, visibleListings.length);
+            const pageItems = visibleListings.slice(start, end);
+
+            if (pageItems.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="no-results">
+                        <i class="fas fa-search"></i>
+                        <p>В этой области нет объектов, соответствующих фильтрам.<br>Переместите карту или измените фильтры.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            pageItems.forEach(item => {
+                const originalIndex = filteredListings.indexOf(item);
+                const url = item.url || '#';
+                const card = document.createElement('a');
+                card.href = escapeHtml(url);
+                card.className = 'listing-card-link';
+                card.dataset.index = originalIndex;
+                card.innerHTML = `
+                    <div class="listing-card" data-index="${originalIndex}">
+                        <div class="image">
+                            <img src="${escapeHtml(item.image) || 'https://placehold.co/600x400/eee/ccc?text=Нет+фото'}" alt="${escapeHtml(item.title)}" loading="lazy" width="100" height="100">
+                        </div>
+                        <div class="info">
+                            <div>
+                                <div class="title">${escapeHtml(item.title)}</div>
+                                <div class="location"><i class="fas fa-map-marker-alt" style="font-size:11px;"></i> ${escapeHtml(item.city || '')}${item.address ? ', ' + escapeHtml(item.address) : ''}</div>
+                            </div>
+                            <div>
+                                <div class="price">₽${item.price} <span>/ ночь</span></div>
+                                <div class="guests"><i class="fas fa-users"></i> до ${item.guests} гостей</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                fragment.appendChild(card);
+            });
+
+            listContainer.innerHTML = '';
+            listContainer.appendChild(fragment);
+            applyHighlightToCurrentList();
+            updatePagination(); // обновить активную кнопку
+        }
+
+        // === ПАГИНАЦИЯ ===
+        function updatePagination() {
+            if (visibleListings.length === 0) {
+                paginationContainer.innerHTML = '';
+                return;
+            }
+
+            const total = totalPages;
+            let html = '';
+
+            // Кнопка "Назад"
+            html += `<button class="page-btn" data-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>&lt;</button>`;
+
+            // Номера страниц (показываем до 5)
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(total, currentPage + 2);
+            if (endPage - startPage < 4) {
+                if (startPage > 1) startPage = Math.max(1, endPage - 4);
+                if (endPage < total) endPage = Math.min(total, startPage + 4);
+            }
+
+            if (startPage > 1) {
+                html += `<button class="page-btn" data-page="1">1</button>`;
+                if (startPage > 2) html += `<span class="dots">…</span>`;
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
+            }
+
+            if (endPage < total) {
+                if (endPage < total - 1) html += `<span class="dots">…</span>`;
+                html += `<button class="page-btn" data-page="${total}">${total}</button>`;
+            }
+
+            // Кнопка "Вперёд"
+            html += `<button class="page-btn" data-page="${currentPage + 1}" ${currentPage >= total ? 'disabled' : ''}>&gt;</button>`;
+
+            // Информация о странице
+            html += `<span class="page-info">${currentPage} / ${total}</span>`;
+
+            paginationContainer.innerHTML = html;
+
+            // Обработчики кликов
+            paginationContainer.querySelectorAll('.page-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const page = parseInt(this.dataset.page);
+                    if (!isNaN(page) && page >= 1 && page <= totalPages && page !== currentPage) {
+                        currentPage = page;
+                        renderPage(currentPage);
+                        // Прокрутка списка наверх
+                        listContainer.scrollTop = 0;
+                    }
+                });
+            });
+        }
+
+        // === ПРИМЕНЕНИЕ ПОДСВЕТКИ ===
+        function applyHighlightToCurrentList() {
+            if (highlightedIndex === -1 && pendingHighlightIndex === -1) return;
+            const targetIndex = pendingHighlightIndex !== -1 ? pendingHighlightIndex : highlightedIndex;
+            if (targetIndex === -1) return;
+
+            const card = document.querySelector(`.listing-card[data-index="${targetIndex}"]`);
+            if (card) {
+                if (highlightedIndex !== -1 && highlightedIndex !== targetIndex) {
+                    const prev = document.querySelector(`.listing-card[data-index="${highlightedIndex}"]`);
+                    if (prev) prev.classList.remove('highlighted');
+                }
+                card.classList.add('highlighted');
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                highlightedIndex = targetIndex;
+                if (pendingHighlightIndex !== -1) pendingHighlightIndex = -1;
+            }
+        }
+
+        // === ПОДСВЕТКА КАРТОЧКИ ===
+        function highlightCard(index) {
+            if (highlightedIndex !== -1 && highlightedIndex !== index) {
+                const prev = document.querySelector(`.listing-card[data-index="${highlightedIndex}"]`);
+                if (prev) prev.classList.remove('highlighted');
+            }
+            highlightedIndex = index;
+            // Проверим, есть ли карточка на текущей странице
+            const card = document.querySelector(`.listing-card[data-index="${index}"]`);
+            if (!card) {
+                // Если нет, нужно перейти на страницу, где она есть
+                const item = filteredListings[index];
+                if (item) {
+                    const pos = visibleListings.indexOf(item);
+                    if (pos !== -1) {
+                        const targetPage = Math.floor(pos / ITEMS_PER_PAGE) + 1;
+                        if (targetPage !== currentPage) {
+                            currentPage = targetPage;
+                            renderPage(currentPage);
+                        }
+                    }
+                }
+            } else {
+                applyHighlightToCurrentList();
+            }
         }
 
         // === УПРАВЛЕНИЕ ЛОУДЕРОМ ===
@@ -741,7 +970,6 @@
             isUpdatingList = true;
             listWrapper.classList.add('loading');
             listContainer.innerHTML = '';
-            loadMoreEl.classList.remove('show');
         }
 
         function finishListUpdate() {
@@ -881,198 +1109,6 @@
             map.addLayer(clusterGroup);
         }
 
-        // === ОБНОВЛЕНИЕ СПИСКА ===
-        function updateList(forceReset) {
-            if (!map || !isDataLoaded) return;
-            const bounds = map.getBounds();
-            currentBounds = bounds;
-
-            let visible = filteredListings.filter(item => {
-                const lat = parseFloat(item.lat);
-                const lng = parseFloat(item.lng);
-                if (isNaN(lat) || isNaN(lng)) return false;
-                return bounds.contains([lat, lng]);
-            });
-
-            if (selectedObjectIndex !== -1 && visible.length > 0) {
-                const selectedItem = filteredListings[selectedObjectIndex];
-                if (selectedItem) {
-                    const pos = visible.indexOf(selectedItem);
-                    if (pos !== -1) {
-                        visible.splice(pos, 1);
-                        visible.unshift(selectedItem);
-                        const container = listContainer;
-                        setTimeout(() => {
-                            container.scrollTop = 0;
-                        }, 10);
-                    }
-                }
-                selectedObjectIndex = -1;
-            }
-
-            visibleListings = visible;
-            resultsCount.innerHTML = `
-                Показано <strong>${visible.length}</strong> из <strong>${filteredListings.length}</strong> объектов
-            `;
-
-            if (visible.length === 0) {
-                listContainer.innerHTML = `
-                    <div class="no-results">
-                        <i class="fas fa-search"></i>
-                        <p>В этой области нет объектов, соответствующих фильтрам.<br>Переместите карту или измените фильтры.</p>
-                    </div>
-                `;
-                loadMoreEl.classList.remove('show');
-                return;
-            }
-
-            if (forceReset) {
-                listPage = 0;
-                listContainer.innerHTML = '';
-                loadMoreEl.classList.remove('show');
-            }
-
-            if (forceReset || listContainer.children.length === 0) {
-                renderListPortion(0);
-            } else {
-                applyHighlightToCurrentList();
-            }
-        }
-
-        // === ОТРИСОВКА ПОРЦИИ СПИСКА ===
-        function renderListPortion(startIndex) {
-            const total = visibleListings.length;
-            const endIndex = Math.min(startIndex + LIST_BATCH_SIZE, total);
-            if (startIndex >= total) {
-                loadMoreEl.classList.remove('show');
-                return;
-            }
-
-            const fragment = document.createDocumentFragment();
-            for (let i = startIndex; i < endIndex; i++) {
-                const item = visibleListings[i];
-                const originalIndex = filteredListings.indexOf(item);
-                const url = item.url || '#';
-                const card = document.createElement('a');
-                card.href = escapeHtml(url);
-                card.className = 'listing-card-link';
-                card.dataset.index = originalIndex;
-                card.innerHTML = `
-                    <div class="listing-card" data-index="${originalIndex}">
-                        <div class="image">
-                            <img src="${escapeHtml(item.image) || 'https://placehold.co/600x400/eee/ccc?text=Нет+фото'}" alt="${escapeHtml(item.title)}" loading="lazy" width="100" height="100">
-                        </div>
-                        <div class="info">
-                            <div>
-                                <div class="title">${escapeHtml(item.title)}</div>
-                                <div class="location"><i class="fas fa-map-marker-alt" style="font-size:11px;"></i> ${escapeHtml(item.city || '')}${item.address ? ', ' + escapeHtml(item.address) : ''}</div>
-                            </div>
-                            <div>
-                                <div class="price">₽${item.price} <span>/ ночь</span></div>
-                                <div class="guests"><i class="fas fa-users"></i> до ${item.guests} гостей</div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                fragment.appendChild(card);
-            }
-
-            listContainer.appendChild(fragment);
-            listPage = endIndex;
-
-            if (endIndex < total) {
-                loadMoreEl.classList.add('show');
-            } else {
-                loadMoreEl.classList.remove('show');
-            }
-
-            applyHighlightToCurrentList();
-        }
-
-        // === ПРИМЕНЕНИЕ ПОДСВЕТКИ ===
-        function applyHighlightToCurrentList() {
-            if (highlightedIndex === -1 && pendingHighlightIndex === -1) return;
-            const targetIndex = pendingHighlightIndex !== -1 ? pendingHighlightIndex : highlightedIndex;
-            if (targetIndex === -1) return;
-
-            if (visibleListings.length > 0 && visibleListings[0] === filteredListings[targetIndex]) {
-                const container = listContainer;
-                setTimeout(() => {
-                    container.scrollTop = 0;
-                }, 10);
-                const card = document.querySelector(`.listing-card[data-index="${targetIndex}"]`);
-                if (card) {
-                    if (highlightedIndex !== -1 && highlightedIndex !== targetIndex) {
-                        const prev = document.querySelector(`.listing-card[data-index="${highlightedIndex}"]`);
-                        if (prev) prev.classList.remove('highlighted');
-                    }
-                    card.classList.add('highlighted');
-                    highlightedIndex = targetIndex;
-                    if (pendingHighlightIndex !== -1) pendingHighlightIndex = -1;
-                }
-                return;
-            }
-
-            const card = document.querySelector(`.listing-card[data-index="${targetIndex}"]`);
-            if (card) {
-                if (highlightedIndex !== -1 && highlightedIndex !== targetIndex) {
-                    const prev = document.querySelector(`.listing-card[data-index="${highlightedIndex}"]`);
-                    if (prev) prev.classList.remove('highlighted');
-                }
-                card.classList.add('highlighted');
-                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                highlightedIndex = targetIndex;
-                if (pendingHighlightIndex !== -1) pendingHighlightIndex = -1;
-            } else {
-                const item = filteredListings[targetIndex];
-                if (item) {
-                    const pos = visibleListings.indexOf(item);
-                    if (pos !== -1) {
-                        const targetPage = Math.floor(pos / LIST_BATCH_SIZE) + 1;
-                        while (listPage < targetPage) {
-                            renderListPortion(listPage);
-                        }
-                        const newCard = document.querySelector(`.listing-card[data-index="${targetIndex}"]`);
-                        if (newCard) {
-                            if (highlightedIndex !== -1 && highlightedIndex !== targetIndex) {
-                                const prev = document.querySelector(`.listing-card[data-index="${highlightedIndex}"]`);
-                                if (prev) prev.classList.remove('highlighted');
-                            }
-                            newCard.classList.add('highlighted');
-                            newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            highlightedIndex = targetIndex;
-                            if (pendingHighlightIndex !== -1) pendingHighlightIndex = -1;
-                        }
-                    }
-                }
-            }
-        }
-
-        // === ЗАГРУЗКА СЛЕДУЮЩЕЙ ПОРЦИИ ===
-        function loadMoreListItems() {
-            if (isLoadingMore) return;
-            if (listPage >= visibleListings.length) {
-                loadMoreEl.classList.remove('show');
-                return;
-            }
-            isLoadingMore = true;
-            loadMoreEl.classList.add('show');
-            setTimeout(() => {
-                renderListPortion(listPage);
-                isLoadingMore = false;
-            }, 100);
-        }
-
-        // === ПОДСВЕТКА КАРТОЧКИ ===
-        function highlightCard(index) {
-            if (highlightedIndex !== -1 && highlightedIndex !== index) {
-                const prev = document.querySelector(`.listing-card[data-index="${highlightedIndex}"]`);
-                if (prev) prev.classList.remove('highlighted');
-            }
-            highlightedIndex = index;
-            applyHighlightToCurrentList();
-        }
-
         // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
         function escapeHtml(text) {
             if (!text) return '';
@@ -1087,7 +1123,7 @@
 </script>
 
 <!-- ============================================================
-     ПЛАВАЮЩАЯ КНОПКА ЧАТА + УВЕДОМЛЕНИЕ (как на других страницах)
+     ПЛАВАЮЩАЯ КНОПКА ЧАТА + УВЕДОМЛЕНИЕ
      ============================================================ -->
 <script>
     (function() {
@@ -1110,7 +1146,6 @@
 
         let unreadCount = 0;
 
-        // Кнопка чата
         const fab = document.createElement('button');
         fab.className = 'chat-fab';
         fab.innerHTML = `💬<span class="badge hidden" id="chatBadge">0</span>`;
@@ -1121,7 +1156,6 @@
         document.body.appendChild(fab);
         const badge = fab.querySelector('.badge');
 
-        // Тоast-уведомление
         const toast = document.createElement('div');
         toast.className = 'chat-toast';
         toast.innerHTML = `
