@@ -40,7 +40,7 @@
         .filters-panel .btn-reset:hover { background: #ebebeb; }
         .filters-panel .filter-label { font-size: 13px; font-weight: 600; color: #717171; min-width: 50px; }
         .list-container-wrapper { flex: 1; overflow: hidden; position: relative; display: flex; flex-direction: column; }
-        .list-container-wrapper .list-content { flex: 1; overflow-y: auto; }
+        .list-container-wrapper .list-content { flex: 1; overflow-y: auto; padding-bottom: 8px; }
         .list-container-wrapper .list-loader { display: none; text-align: center; padding: 40px 0; color: #717171; }
         .list-container-wrapper.loading .list-content { display: none; }
         .list-container-wrapper.loading .list-loader { display: block; }
@@ -79,51 +79,68 @@
         .progress-bar { width: 100%; height: 4px; background: #f0f0f0; margin: 0 0 12px 0; border-radius: 2px; overflow: hidden; flex-shrink: 0; }
         .progress-bar .fill { height: 100%; background: #ff385c; width: 0%; transition: width 0.2s; }
 
-        /* ===== СТИЛИ ДЛЯ ПАГИНАЦИИ ===== */
-        .pagination-container {
+        /* === ПАГИНАЦИЯ (компактная, в одну строку) === */
+        .pagination-wrap {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 6px;
-            padding: 12px 0 4px 0;
+            gap: 4px;
+            padding: 8px 0 4px 0;
             flex-shrink: 0;
             flex-wrap: wrap;
+            border-top: 1px solid #ebebeb;
+            margin-top: 4px;
+            background: #fafafa;
         }
-        .pagination-container button {
-            padding: 6px 12px;
+        .pagination-wrap .page-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 32px;
+            padding: 0 6px;
             border: 1px solid #ddd;
-            border-radius: 8px;
+            border-radius: 6px;
             background: white;
             color: #222;
             font-size: 13px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s;
-            min-width: 36px;
-            text-align: center;
+            transition: all 0.15s;
+            user-select: none;
+            line-height: 1;
         }
-        .pagination-container button:hover:not(:disabled) {
-            background: #f7f7f7;
-            border-color: #ff385c;
+        .pagination-wrap .page-btn:hover:not(.active):not(:disabled) {
+            background: #f0f0f0;
+            border-color: #bbb;
         }
-        .pagination-container button.active {
+        .pagination-wrap .page-btn.active {
             background: #ff385c;
-            color: white;
             border-color: #ff385c;
-            font-weight: 600;
+            color: white;
+            cursor: default;
         }
-        .pagination-container button:disabled {
+        .pagination-wrap .page-btn:disabled {
             opacity: 0.4;
             cursor: not-allowed;
+            background: #f7f7f7;
         }
-        .pagination-container .page-info {
-            font-size: 13px;
-            color: #717171;
-            padding: 0 8px;
+        .pagination-wrap .page-btn.arrow {
+            font-size: 14px;
+            min-width: 34px;
         }
-        .pagination-container .dots {
-            padding: 0 4px;
+        .pagination-wrap .page-btn.dots {
+            border: none;
+            background: transparent;
+            cursor: default;
+            min-width: 20px;
             color: #717171;
-            font-size: 13px;
+        }
+        .pagination-wrap .page-info {
+            font-size: 12px;
+            color: #717171;
+            margin: 0 6px;
+            white-space: nowrap;
         }
 
         /* ===== СТИЛИ ДЛЯ ЧАТА ===== */
@@ -189,6 +206,7 @@
             50% { transform: scale(1.15); }
             100% { transform: scale(1); }
         }
+
         .chat-toast {
             position: fixed;
             top: 24px;
@@ -400,6 +418,20 @@
                 line-height: 34px !important;
                 font-size: 11px;
             }
+            .pagination-wrap .page-btn {
+                min-width: 28px;
+                height: 28px;
+                font-size: 11px;
+                padding: 0 4px;
+            }
+            .pagination-wrap .page-btn.arrow {
+                min-width: 30px;
+                font-size: 12px;
+            }
+            .pagination-wrap .page-info {
+                font-size: 10px;
+                margin: 0 4px;
+            }
             .chat-fab {
                 bottom: 16px;
                 right: 16px;
@@ -426,14 +458,6 @@
                 width: 40px;
                 height: 40px;
                 font-size: 24px;
-            }
-            .pagination-container button {
-                font-size: 11px;
-                padding: 4px 8px;
-                min-width: 30px;
-            }
-            .pagination-container .page-info {
-                font-size: 11px;
             }
         }
 
@@ -467,10 +491,15 @@
             .listing-card .info .guests {
                 font-size: 10px;
             }
-            .pagination-container button {
+            .pagination-wrap .page-btn {
+                min-width: 24px;
+                height: 24px;
                 font-size: 10px;
-                padding: 3px 6px;
+                padding: 0 3px;
+            }
+            .pagination-wrap .page-btn.arrow {
                 min-width: 26px;
+                font-size: 11px;
             }
         }
     </style>
@@ -486,7 +515,7 @@
 
 <div class="main">
     <div class="list-panel" id="listPanel">
-        <!-- Фильтры (справа на мобильных) -->
+        <!-- Фильтры – справа на мобильных, сверху на десктопе -->
         <div class="filters-panel" id="filtersPanel">
             <div class="filter-row">
                 <span class="filter-label">Сорт.</span>
@@ -523,7 +552,7 @@
             </div>
         </div>
 
-        <!-- Контейнер со списком -->
+        <!-- Контейнер со списком (слева на мобильных) -->
         <div class="list-container-wrapper" id="listWrapper">
             <div class="results-count" id="resultsCount">Загрузка...</div>
             <div class="list-content" id="listContainer">
@@ -533,8 +562,8 @@
                 <i class="fas fa-spinner fa-pulse"></i>
                 <span>Загрузка объектов...</span>
             </div>
-            <!-- Пагинация -->
-            <div class="pagination-container" id="paginationContainer"></div>
+            <!-- Пагинация будет вставлена сюда -->
+            <div class="pagination-wrap" id="paginationWrap"></div>
         </div>
     </div>
 
@@ -557,11 +586,11 @@
         let clusterGroup = null;
         let markerMap = {};
         let currentBounds = null;
-        let highlightedIndex = -1;
+        let highlightedIndex = -1;       // индекс в filteredListings
         let pendingHighlightIndex = -1;
         let selectedObjectIndex = -1;
         let listUpdateTimeout = null;
-        let visibleListings = [];
+        let visibleListings = [];        // отфильтрованные + попадающие в bounds
         let currentPage = 1;
         let totalPages = 1;
         let isDataLoaded = false;
@@ -570,8 +599,8 @@
         const listWrapper = document.getElementById('listWrapper');
         const listContainer = document.getElementById('listContainer');
         const resultsCount = document.getElementById('resultsCount');
+        const paginationWrap = document.getElementById('paginationWrap');
         const listLoader = document.getElementById('listLoader');
-        const paginationContainer = document.getElementById('paginationContainer');
         const sortSelect = document.getElementById('sortSelect');
         const guestsFilter = document.getElementById('guestsFilter');
         const priceMin = document.getElementById('priceMin');
@@ -614,7 +643,7 @@
                         loadedFile = file;
                         break;
                     }
-                } catch (e) {}
+                } catch (e) { /* игнорируем */ }
             }
 
             if (data) {
@@ -662,13 +691,14 @@
                 clearTimeout(listUpdateTimeout);
                 listUpdateTimeout = setTimeout(() => {
                     currentBounds = map.getBounds();
-                    startListUpdate();
                     updateVisibleList();
+                    currentPage = 1;
+                    renderPage(currentPage);
+                    renderPagination();
                     if (pendingHighlightIndex !== -1) {
                         highlightCard(pendingHighlightIndex);
                         pendingHighlightIndex = -1;
                     }
-                    finishListUpdate();
                 }, 300);
             });
 
@@ -683,16 +713,17 @@
                 }
             });
 
+            // Обработчики фильтров
             applyBtn.addEventListener('click', function() {
                 applyFiltersAndSort();
                 highlightedIndex = -1;
                 pendingHighlightIndex = -1;
                 selectedObjectIndex = -1;
-                currentPage = 1;
                 buildClusters();
-                startListUpdate();
                 updateVisibleList();
-                finishListUpdate();
+                currentPage = 1;
+                renderPage(currentPage);
+                renderPagination();
             });
 
             resetBtn.addEventListener('click', function() {
@@ -704,11 +735,11 @@
                 highlightedIndex = -1;
                 pendingHighlightIndex = -1;
                 selectedObjectIndex = -1;
-                currentPage = 1;
                 buildClusters();
-                startListUpdate();
                 updateVisibleList();
-                finishListUpdate();
+                currentPage = 1;
+                renderPage(currentPage);
+                renderPagination();
             });
 
             sortSelect.addEventListener('change', function() {
@@ -716,11 +747,11 @@
                 highlightedIndex = -1;
                 pendingHighlightIndex = -1;
                 selectedObjectIndex = -1;
-                currentPage = 1;
                 buildClusters();
-                startListUpdate();
                 updateVisibleList();
-                finishListUpdate();
+                currentPage = 1;
+                renderPage(currentPage);
+                renderPagination();
             });
 
             guestsFilter.addEventListener('change', function() {
@@ -728,23 +759,25 @@
                 highlightedIndex = -1;
                 pendingHighlightIndex = -1;
                 selectedObjectIndex = -1;
-                currentPage = 1;
                 buildClusters();
-                startListUpdate();
                 updateVisibleList();
-                finishListUpdate();
+                currentPage = 1;
+                renderPage(currentPage);
+                renderPagination();
             });
 
             priceMin.addEventListener('keydown', function(e) { if (e.key === 'Enter') applyBtn.click(); });
             priceMax.addEventListener('keydown', function(e) { if (e.key === 'Enter') applyBtn.click(); });
 
+            // Первоначальная отрисовка
             setTimeout(() => {
                 currentBounds = map.getBounds();
-                startListUpdate();
-                buildClusters();
                 updateVisibleList();
+                currentPage = 1;
+                renderPage(currentPage);
+                renderPagination();
+                buildClusters();
                 document.getElementById('progressFill')?.style.setProperty('width', '100%');
-                finishListUpdate();
             }, 200);
         }
 
@@ -776,10 +809,9 @@
 
             filteredListings = result;
             resultsCount.innerHTML = `Найдено <strong>${filteredListings.length}</strong> объектов`;
-            updatePagination();
         }
 
-        // === ОБНОВЛЕНИЕ ВИДИМОГО СПИСКА (с учётом карты и пагинации) ===
+        // === ОБНОВЛЕНИЕ СПИСКА ВИДИМЫХ ОБЪЕКТОВ (по границам карты) ===
         function updateVisibleList() {
             if (!map || !isDataLoaded) return;
             const bounds = map.getBounds();
@@ -792,6 +824,7 @@
                 return bounds.contains([lat, lng]);
             });
 
+            // Если выбран объект, помещаем его в начало списка (если он в видимой области)
             if (selectedObjectIndex !== -1 && visible.length > 0) {
                 const selectedItem = filteredListings[selectedObjectIndex];
                 if (selectedItem) {
@@ -805,19 +838,14 @@
             }
 
             visibleListings = visible;
-            totalPages = Math.ceil(visibleListings.length / ITEMS_PER_PAGE) || 1;
-            if (currentPage > totalPages) currentPage = totalPages;
-            updatePagination();
-            renderPage(currentPage);
+            resultsCount.innerHTML = `
+                Показано <strong>${visibleListings.length}</strong> из <strong>${filteredListings.length}</strong> объектов
+            `;
         }
 
         // === ОТРИСОВКА СТРАНИЦЫ ===
         function renderPage(page) {
-            const start = (page - 1) * ITEMS_PER_PAGE;
-            const end = Math.min(start + ITEMS_PER_PAGE, visibleListings.length);
-            const pageItems = visibleListings.slice(start, end);
-
-            if (pageItems.length === 0) {
+            if (!visibleListings.length) {
                 listContainer.innerHTML = `
                     <div class="no-results">
                         <i class="fas fa-search"></i>
@@ -827,6 +855,24 @@
                 return;
             }
 
+            totalPages = Math.ceil(visibleListings.length / ITEMS_PER_PAGE);
+            if (page < 1) page = 1;
+            if (page > totalPages) page = totalPages;
+            currentPage = page;
+
+            const start = (page - 1) * ITEMS_PER_PAGE;
+            const end = Math.min(start + ITEMS_PER_PAGE, visibleListings.length);
+            const pageItems = visibleListings.slice(start, end);
+
+            // Очищаем контейнер
+            listContainer.innerHTML = '';
+            // Добавляем прогресс-бар (он может быть уже, но мы его пересоздадим)
+            const progressBar = document.createElement('div');
+            progressBar.className = 'progress-bar';
+            progressBar.innerHTML = '<div class="fill" id="progressFill"></div>';
+            listContainer.appendChild(progressBar);
+
+            // Рендерим карточки
             const fragment = document.createDocumentFragment();
             pageItems.forEach(item => {
                 const originalIndex = filteredListings.indexOf(item);
@@ -854,64 +900,72 @@
                 `;
                 fragment.appendChild(card);
             });
-
-            listContainer.innerHTML = '';
             listContainer.appendChild(fragment);
+
+            // Применяем подсветку, если она есть
             applyHighlightToCurrentList();
-            updatePagination(); // обновить активную кнопку
+
+            // Обновляем пагинацию
+            renderPagination();
         }
 
         // === ПАГИНАЦИЯ ===
-        function updatePagination() {
+        function renderPagination() {
             if (visibleListings.length === 0) {
-                paginationContainer.innerHTML = '';
+                paginationWrap.innerHTML = '';
                 return;
             }
 
-            const total = totalPages;
+            totalPages = Math.ceil(visibleListings.length / ITEMS_PER_PAGE);
+            const current = currentPage;
+
             let html = '';
 
+            // Кнопка "Первая"
+            html += `<button class="page-btn arrow" data-page="1" ${current === 1 ? 'disabled' : ''}>&lt;&lt;</button>`;
             // Кнопка "Назад"
-            html += `<button class="page-btn" data-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>&lt;</button>`;
+            html += `<button class="page-btn arrow" data-page="${current - 1}" ${current <= 1 ? 'disabled' : ''}>&lt;</button>`;
 
-            // Номера страниц (показываем до 5)
-            let startPage = Math.max(1, currentPage - 2);
-            let endPage = Math.min(total, currentPage + 2);
-            if (endPage - startPage < 4) {
-                if (startPage > 1) startPage = Math.max(1, endPage - 4);
-                if (endPage < total) endPage = Math.min(total, startPage + 4);
+            // Номера страниц
+            const maxVisible = 7;
+            let startPage = Math.max(1, current - Math.floor(maxVisible / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+            if (endPage - startPage < maxVisible - 1) {
+                startPage = Math.max(1, endPage - maxVisible + 1);
             }
 
             if (startPage > 1) {
                 html += `<button class="page-btn" data-page="1">1</button>`;
-                if (startPage > 2) html += `<span class="dots">…</span>`;
+                if (startPage > 2) html += `<span class="page-btn dots">…</span>`;
             }
 
             for (let i = startPage; i <= endPage; i++) {
-                html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
+                html += `<button class="page-btn ${i === current ? 'active' : ''}" data-page="${i}">${i}</button>`;
             }
 
-            if (endPage < total) {
-                if (endPage < total - 1) html += `<span class="dots">…</span>`;
-                html += `<button class="page-btn" data-page="${total}">${total}</button>`;
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) html += `<span class="page-btn dots">…</span>`;
+                html += `<button class="page-btn" data-page="${totalPages}">${totalPages}</button>`;
             }
 
-            // Кнопка "Вперёд"
-            html += `<button class="page-btn" data-page="${currentPage + 1}" ${currentPage >= total ? 'disabled' : ''}>&gt;</button>`;
+            // Кнопка "Вперед"
+            html += `<button class="page-btn arrow" data-page="${current + 1}" ${current >= totalPages ? 'disabled' : ''}>&gt;</button>`;
+            // Кнопка "Последняя"
+            html += `<button class="page-btn arrow" data-page="${totalPages}" ${current === totalPages ? 'disabled' : ''}>&gt;&gt;</button>`;
 
             // Информация о странице
-            html += `<span class="page-info">${currentPage} / ${total}</span>`;
+            html += `<span class="page-info">${current} / ${totalPages}</span>`;
 
-            paginationContainer.innerHTML = html;
+            paginationWrap.innerHTML = html;
 
             // Обработчики кликов
-            paginationContainer.querySelectorAll('.page-btn').forEach(btn => {
+            paginationWrap.querySelectorAll('.page-btn:not(.dots)').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const page = parseInt(this.dataset.page);
-                    if (!isNaN(page) && page >= 1 && page <= totalPages && page !== currentPage) {
+                    if (page && page !== currentPage && page >= 1 && page <= totalPages) {
                         currentPage = page;
                         renderPage(currentPage);
-                        // Прокрутка списка наверх
+                        // Прокручиваем список вверх
                         listContainer.scrollTop = 0;
                     }
                 });
@@ -924,16 +978,38 @@
             const targetIndex = pendingHighlightIndex !== -1 ? pendingHighlightIndex : highlightedIndex;
             if (targetIndex === -1) return;
 
+            // Сначала снимаем подсветку со всех
+            document.querySelectorAll('.listing-card.highlighted').forEach(el => el.classList.remove('highlighted'));
+
             const card = document.querySelector(`.listing-card[data-index="${targetIndex}"]`);
             if (card) {
-                if (highlightedIndex !== -1 && highlightedIndex !== targetIndex) {
-                    const prev = document.querySelector(`.listing-card[data-index="${highlightedIndex}"]`);
-                    if (prev) prev.classList.remove('highlighted');
-                }
                 card.classList.add('highlighted');
                 card.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 highlightedIndex = targetIndex;
                 if (pendingHighlightIndex !== -1) pendingHighlightIndex = -1;
+            } else {
+                // Карточка не на текущей странице – находим страницу, где она есть
+                const item = filteredListings[targetIndex];
+                if (item) {
+                    const pos = visibleListings.indexOf(item);
+                    if (pos !== -1) {
+                        const page = Math.floor(pos / ITEMS_PER_PAGE) + 1;
+                        if (page !== currentPage) {
+                            currentPage = page;
+                            renderPage(currentPage);
+                            // После рендеринга повторно применим подсветку
+                            setTimeout(() => {
+                                const newCard = document.querySelector(`.listing-card[data-index="${targetIndex}"]`);
+                                if (newCard) {
+                                    newCard.classList.add('highlighted');
+                                    newCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    highlightedIndex = targetIndex;
+                                    if (pendingHighlightIndex !== -1) pendingHighlightIndex = -1;
+                                }
+                            }, 50);
+                        }
+                    }
+                }
             }
         }
 
@@ -944,37 +1020,7 @@
                 if (prev) prev.classList.remove('highlighted');
             }
             highlightedIndex = index;
-            // Проверим, есть ли карточка на текущей странице
-            const card = document.querySelector(`.listing-card[data-index="${index}"]`);
-            if (!card) {
-                // Если нет, нужно перейти на страницу, где она есть
-                const item = filteredListings[index];
-                if (item) {
-                    const pos = visibleListings.indexOf(item);
-                    if (pos !== -1) {
-                        const targetPage = Math.floor(pos / ITEMS_PER_PAGE) + 1;
-                        if (targetPage !== currentPage) {
-                            currentPage = targetPage;
-                            renderPage(currentPage);
-                        }
-                    }
-                }
-            } else {
-                applyHighlightToCurrentList();
-            }
-        }
-
-        // === УПРАВЛЕНИЕ ЛОУДЕРОМ ===
-        function startListUpdate() {
-            if (isUpdatingList) return;
-            isUpdatingList = true;
-            listWrapper.classList.add('loading');
-            listContainer.innerHTML = '';
-        }
-
-        function finishListUpdate() {
-            isUpdatingList = false;
-            listWrapper.classList.remove('loading');
+            applyHighlightToCurrentList();
         }
 
         // === КАРТА ===
@@ -1096,6 +1142,15 @@
                     if (idx !== -1) {
                         selectedObjectIndex = idx;
                         pendingHighlightIndex = idx;
+                        // Переключаем страницу, если нужно
+                        const pos = visibleListings.indexOf(item);
+                        if (pos !== -1) {
+                            const page = Math.floor(pos / ITEMS_PER_PAGE) + 1;
+                            if (page !== currentPage) {
+                                currentPage = page;
+                                renderPage(currentPage);
+                            }
+                        }
                         highlightCard(idx);
                     }
                     map.setView([lat, lng], Math.max(map.getZoom(), 15));
@@ -1123,7 +1178,7 @@
 </script>
 
 <!-- ============================================================
-     ПЛАВАЮЩАЯ КНОПКА ЧАТА + УВЕДОМЛЕНИЕ
+     ЧАТ (без изменений)
      ============================================================ -->
 <script>
     (function() {
