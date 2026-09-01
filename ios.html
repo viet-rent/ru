@@ -93,8 +93,26 @@
         .guest-modal-actions .apply-btn:hover { background:#e01e4a; }
         .guest-limit-warning { font-size:13px; color:#dc2626; text-align:center; margin-top:8px; display:none; }
         .guest-limit-warning.show { display:block; }
-        .book-btn { width:100%; padding:14px; background:#ff385c; color:white; border:none; border-radius:12px; font-size:16px; font-weight:600; cursor:pointer; margin-top:16px; }
+        .book-btn {
+            width:100%;
+            padding:14px;
+            background:#ff385c;
+            color:white;
+            border:none;
+            border-radius:12px;
+            font-size:16px;
+            font-weight:600;
+            cursor:pointer;
+            margin-top:16px;
+            transition: opacity 0.3s, background 0.3s;
+        }
         .book-btn:hover { background:#e01e4a; }
+        .book-btn:disabled {
+            opacity: 0.5 !important;
+            cursor: not-allowed !important;
+            background: #ccc !important;
+            pointer-events: none !important;
+        }
         .flatpickr-calendar { max-width:320px !important; width:auto !important; z-index:10000 !important; }
         .leaflet-popup-close-button { position:absolute; top:8px; right:8px; width:28px; height:28px; background:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; cursor:pointer; z-index:10; box-shadow:0 1px 8px rgba(0,0,0,0.1); }
         .leaflet-popup-close-button:hover { background:#f7f7f7; }
@@ -103,11 +121,11 @@
         @media (max-width:1024px) { .header,.container { padding:20px; } .content-grid { grid-template-columns:1fr; gap:40px; } .booking-card { position:static; } }
         @media (max-width:768px) { .date-inputs { flex-direction:column; } .date-input { min-width:100%; } .flatpickr-calendar { max-width:calc(100% - 32px) !important; width:auto !important; } .carousel-main { height:300px; } .highlights-grid { grid-template-columns:1fr; } .amenities-grid { grid-template-columns:1fr; } .guest-modal-content { padding:20px 16px; max-width:100%; } }
 
-        /* ===== НОВЫЕ СТИЛИ ДЛЯ КНОПКИ ЧАТА ===== */
+        /* ===== СТИЛИ ДЛЯ КНОПКИ ЧАТА (СПРАВА СНИЗУ) ===== */
         .chat-fab {
             position: fixed;
             bottom: 30px;
-            left: 30px;
+            right: 30px;
             width: 68px;
             height: 68px;
             border-radius: 50%;
@@ -237,7 +255,7 @@
         @media (max-width: 480px) {
             .chat-fab {
                 bottom: 20px;
-                left: 20px;
+                right: 20px;
                 width: 56px;
                 height: 56px;
                 font-size: 26px;
@@ -497,7 +515,7 @@
                 <tr><td>ID объекта</td><td>#1983</td></tr>
                                 <tr><td>PhuQuoc ID</td><td>1549237149093440969</td></tr>
                                 <tr><td>Добавлен на сайт</td><td>
-                    13.04.2025                </td></tr>
+                    05.03.2025                </td></tr>
             </table>
         </div>
         <div>
@@ -524,7 +542,7 @@
                         <span class="guest-picker-label">ГОСТИ</span>
                         <div class="guest-picker-value" id="guestPickerValue">1 гость</div>
                     </div>
-                    <button type="submit" class="book-btn">Забронировать</button>
+                    <button type="submit" class="book-btn" id="bookBtn">Забронировать</button>
                 </form>
             </div>
         </div>
@@ -582,11 +600,14 @@
     const listingData = {"id":1983,"title":"\u0412\u0438\u043b\u043b\u0430 P \u0441 \u0447\u0430\u0441\u0442\u043d\u044b\u043c \u0431\u0430\u0441\u0441\u0435\u0439\u043d\u043e\u043c - 3 \u0441\u043f\u0430\u043b\u044c\u043d\u0438 \u0424\u0443\u043a\u0443\u043e\u043a (\u0440\u044f\u0434\u043e\u043c \u0441 \u043f\u043b\u044f\u0436\u0435\u043c)","image":"https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/2ac99e6c-ae35-4877-9af3-8c24e6671d4b.jpeg","price":7769,"originalPrice":77686,"guests":8,"city":"\u0424\u0443\u043a\u0443\u043e\u043a","address":"","lat":10.1508,"lng":103.98036999999999,"url":"listing.php?id=1983"};
     localStorage.setItem('listingData', JSON.stringify(listingData));
 
+    // === Глобальные константы ===
+    const LISTING_ID = listingData.id;
+    const LISTING_TITLE = listingData.title;
+
     // === КАРУСЕЛЬ ===
     var photos = ["https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/2ac99e6c-ae35-4877-9af3-8c24e6671d4b.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/2b7a8b18-c707-4627-bbbe-25f07936b133.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/045952aa-fcca-4c97-932b-adec7b3caff6.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/391cfdd3-a7e9-470f-9b3e-db7542d97283.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/1c58d7fa-8cda-4dd3-9e99-146b9ca0cea7.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/d3ba3a7f-1d91-4d1c-8792-5fbb25e47186.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/b5466c7f-3a47-4c4e-bd8f-8905fecd666e.png","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/beb997ba-61c9-4ab3-8db9-6ba1d79ebdeb.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/be84f86e-7e8a-469f-a0b5-d9d89bb8b1fe.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/9ead7c74-7e03-4063-bc8b-09733edcee9a.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/c9e45a7a-306c-48f2-91e2-bd517daaac94.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/8e6e43cc-3183-4843-8754-415d58fb0014.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/ac85e235-3347-4e28-a2b4-0074dfd7bb58.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/4c3e91d5-6aa1-4dab-8adb-f0eda0738eb3.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/4d08e3bd-93c9-404e-b54e-b9bf9bdb3b46.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/d93aa528-16b9-4463-8a63-d7ec9bbb2136.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/c84bc603-317a-44d6-82e2-c9996412ccde.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/b891d4f7-d2a8-4abb-9314-25189f72b4c5.png","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/9a0ce298-d12d-43ba-95f7-94f90b92973e.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/c50a0313-dce8-4268-b3c1-984045c0b4c5.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/a0af4729-a364-49b3-b3e8-595f102215c7.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/1caf5e09-debe-4457-b697-5275818f8d4b.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/b346de63-2729-4c88-90c0-bcb9dd8f1edf.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/e4065421-0313-4647-bc18-eaa22731120e.png","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/05b2d7c1-ae41-49a2-9c87-d06789627f92.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/2f12bf9c-4870-4c6e-8d20-fa0f02b47dcf.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/0c69c4e6-9372-42ac-9096-8fbf148ede4a.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/b805846e-a14c-4ba2-9261-a79dd74603ec.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/9d239e30-a33e-42d6-b987-ab2ae12cdd27.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/efc36db2-bcbb-4d3a-baac-48d3b3990dba.jpeg"];
     var currentIndex = 0;
     var touchStartX = 0;
-    var touchEndX = 0;
     var isSwiping = false;
 
     function updateMainImage() {
@@ -616,7 +637,6 @@
         updateMainImage();
     }
 
-    // === Обработка свайпа для карусели ===
     const carouselMain = document.getElementById('carouselMain');
     if (carouselMain) {
         carouselMain.addEventListener('touchstart', function(e) {
@@ -656,6 +676,7 @@
     const checkInContainer = document.getElementById('checkInInput');
     const checkOutContainer = document.getElementById('checkOutInput');
     const dateError = document.getElementById('dateError');
+    const bookBtn = document.getElementById('bookBtn');
 
     let disabledDates = [];
     let disabledDateStrings = [];
@@ -663,47 +684,41 @@
 
     const DATES_PATH = '../dates/';
 
-    async function loadBookingData() {
-        const id = 1983;
-        const url = `${DATES_PATH}${id}.json`;
-        console.log('Загрузка данных о занятости из:', url);
-        try {
-            const response = await fetch(url);
-            if (!response.ok) {
-                disabledDates = [];
-                disabledDateStrings = [];
-                console.log('Файл не найден, объект свободен');
-                return;
-            }
-            const data = await response.json();
-            if (Array.isArray(data)) {
-                const bookedPeriods = data.map(item => ({
-                    check_in: new Date(item.check_in + 'T00:00:00'),
-                    check_out: new Date(item.check_out + 'T00:00:00')
-                }));
-                disabledDates = [];
-                disabledDateStrings = [];
-                bookedPeriods.forEach(period => {
-                    let d = new Date(period.check_in);
-                    while (d < period.check_out) {
-                        const dStr = formatDateYMD(d);
-                        disabledDateStrings.push(dStr);
-                        disabledDates.push(new Date(d));
-                        d.setDate(d.getDate() + 1);
-                    }
-                });
-            } else {
-                disabledDates = [];
-                disabledDateStrings = [];
-            }
-        } catch (e) {
-            disabledDates = [];
-            disabledDateStrings = [];
-            console.warn('Ошибка загрузки данных о занятости:', e);
+    // ===== УПРАВЛЕНИЕ КНОПКОЙ "ЗАБРОНИРОВАТЬ" (исправлено) =====
+    function updateBookButtonState() {
+        if (!bookBtn) {
+            console.warn('Кнопка bookBtn не найдена');
+            return;
         }
-        console.log('Занятые даты (строки):', disabledDateStrings);
+        const isBooked = checkIn && checkOut && hasBookedDaysBetween(checkIn, checkOut);
+        if (isBooked) {
+            bookBtn.setAttribute('disabled', 'disabled');
+        } else {
+            bookBtn.removeAttribute('disabled');
+        }
     }
 
+    // ===== ФУНКЦИЯ ДЛЯ ПОСТРОЕНИЯ ССЫЛКИ НА ЧАТ =====
+    function buildChatLink() {
+        let params = new URLSearchParams();
+        params.set('context', 'booking');
+        params.set('listing_id', LISTING_ID);
+        let checkInDate = checkIn ? new Date(checkIn) : new Date();
+        let checkOutDate = checkOut ? new Date(checkOut) : new Date(checkInDate);
+        if (!checkOut || checkOut <= checkIn) {
+            checkOutDate = new Date(checkInDate);
+            checkOutDate.setDate(checkOutDate.getDate() + 1);
+        }
+        params.set('check_in', formatDateYMD(checkInDate));
+        params.set('check_out', formatDateYMD(checkOutDate));
+        const adults = parseInt(document.getElementById('adultsCount')?.innerText || '1');
+        const children = parseInt(document.getElementById('childrenCount')?.innerText || '0');
+        params.set('guests', adults + children);
+        params.set('listing_title', LISTING_TITLE);
+        return '../chat.html?' + params.toString();
+    }
+
+    // === ФУНКЦИИ ДЛЯ ДАТ ===
     function formatDateYMD(date) {
         let d = date.getDate(), m = date.getMonth()+1, y = date.getFullYear();
         return `${y}-${m<10?'0'+m:m}-${d<10?'0'+d:d}`;
@@ -722,14 +737,58 @@
         let d = new Date(start);
         while (d < end) {
             const str = formatDateYMD(d);
-            if (disabledDateStrings.includes(str)) {
-                return true;
-            }
+            if (disabledDateStrings.includes(str)) return true;
             d.setDate(d.getDate() + 1);
         }
         return false;
     }
 
+    // === ЗАГРУЗКА ДАННЫХ О ЗАНЯТОСТИ ===
+    async function loadBookingData() {
+        const id = 1983;
+        const url = `${DATES_PATH}${id}.json`;
+        try {
+            const response = await fetch(url);
+            if (!response.ok) { disabledDates = []; disabledDateStrings = []; return; }
+            const data = await response.json();
+            if (Array.isArray(data)) {
+                disabledDates = [];
+                disabledDateStrings = [];
+                data.forEach(item => {
+                    let d = new Date(item.check_in + 'T00:00:00');
+                    const end = new Date(item.check_out + 'T00:00:00');
+                    while (d < end) {
+                        const dStr = formatDateYMD(d);
+                        disabledDateStrings.push(dStr);
+                        disabledDates.push(new Date(d));
+                        d.setDate(d.getDate() + 1);
+                    }
+                });
+            } else {
+                disabledDates = [];
+                disabledDateStrings = [];
+            }
+        } catch (e) {
+            disabledDates = [];
+            disabledDateStrings = [];
+        }
+        // После загрузки обновляем состояние кнопки
+        updateBookButtonState();
+    }
+
+    // === ОБНОВЛЕНИЕ СООБЩЕНИЯ О ЗАНЯТОСТИ ===
+    function updateBookingMessage() {
+        if (checkIn && checkOut && hasBookedDaysBetween(checkIn, checkOut)) {
+            const chatLink = buildChatLink();
+            dateError.innerHTML = `Выбранные даты включают занятые дни. Пожалуйста, выберите другие даты. Либо <a href="${chatLink}" target="_blank" style="color:#ff385c; font-weight:600; text-decoration:underline;">свяжитесь с поддержкой</a>. Мы свяжемся с владельцем жилья и уточним есть ли возможность брони на эти даты, т.к. многие владельцы оставляют некоторые даты себе для продажи по повышенному тарифу.`;
+            dateError.style.display = 'block';
+        } else {
+            dateError.style.display = 'none';
+        }
+        updateBookButtonState();
+    }
+
+    // === ИНИЦИАЛИЗАЦИЯ КАЛЕНДАРЕЙ ===
     async function initDatePickers() {
         await loadBookingData();
 
@@ -762,23 +821,10 @@
                     } else {
                         fpOut.set('minDate', checkIn);
                     }
-                    if (checkIn && checkOut && hasBookedDaysBetween(checkIn, checkOut)) {
-                        const tempCheckIn = formatDateYMD(checkIn);
-                        const tempCheckOut = formatDateYMD(checkOut);
-                        const adults = parseInt(document.getElementById('adultsCount')?.innerText || '1');
-                        const children = parseInt(document.getElementById('childrenCount')?.innerText || '0');
-                        const listingId = 1983;
-                        const listingTitle = 'Вилла P с частным бассейном - 3 спальни Фукуок (рядом с пляжем)';
-                        const chatLink = `../chat.html?context=booking&listing_id=${listingId}&check_in=${tempCheckIn}&check_out=${tempCheckOut}&listing_title=${encodeURIComponent(listingTitle)}`;
-                        
-                        dateError.innerHTML = `Выбранные даты включают занятые дни. Пожалуйста, выберите другие даты. Либо <a href="${chatLink}" style="color:#ff385c; font-weight:600; text-decoration:underline;">свяжитесь с поддержкой</a> и мы уточним у владельца возможность освободить ваши даты. Мы свяжемся с владельцем жилья и утоним есть ли возможность брони на эти даты, т.к. многие владельцы оставляют некоторые даты себе для продажи по повышенному тарифу.`;
-                        dateError.style.display = 'block';
-                        // Убираем сброс дат, чтобы ссылка работала
-                        return;
-                    } else {
-                        dateError.style.display = 'none';
+                    updateBookingMessage();
+                    if (!hasBookedDaysBetween(checkIn, checkOut)) {
+                        fpOut.open();
                     }
-                    fpOut.open();
                 }
             }
         });
@@ -802,25 +848,13 @@
                         return;
                     }
                     if (checkIn && newCheckOut && hasBookedDaysBetween(checkIn, newCheckOut)) {
-                        const tempCheckIn = formatDateYMD(checkIn);
-                        const tempCheckOut = formatDateYMD(newCheckOut);
-                        const adults = parseInt(document.getElementById('adultsCount')?.innerText || '1');
-                        const children = parseInt(document.getElementById('childrenCount')?.innerText || '0');
-                        const guests = adults + children;
-                        const listingId = 1983;
-                        const listingTitle = 'Вилла P с частным бассейном - 3 спальни Фукуок (рядом с пляжем)';
-                        const chatLink = `../chat.html?context=booking&listing_id=${listingId}&check_in=${tempCheckIn}&check_out=${tempCheckOut}&listing_title=${encodeURIComponent(listingTitle)}`;
-                        
-                        dateError.innerHTML = `Выбранные даты включают занятые дни. Пожалуйста, выберите другие даты. Либо <a href="${chatLink}" style="color:#ff385c; font-weight:600; text-decoration:underline;">свяжитесь с поддержкой</a>. Мы свяжемся с владельцем жилья и уточним есть ли возможность брони на эти даты, т.к. многие владельцы оставляют некоторые даты себе для продажи по повышенному тарифу.`;
-                        dateError.style.display = 'block';
-                        // Не сбрасываем дату, чтобы ссылка работала
+                        updateBookingMessage();
                         return;
-                    } else {
-                        dateError.style.display = 'none';
                     }
                     checkOut = newCheckOut;
                     checkOutHidden.value = formatDateYMD(checkOut);
                     checkOutDisplay.value = dateStr;
+                    updateBookingMessage();
                 }
             }
         });
@@ -839,6 +873,8 @@
             fpIn.redraw();
             fpOut.redraw();
         }
+        // После инициализации календарей обновляем кнопку
+        updateBookButtonState();
     }
 
     initDatePickers();
@@ -851,24 +887,13 @@
         if (!petsBadge) {
             checkbox.disabled = true;
             checkbox.checked = false;
-            if (container) {
-                container.classList.add('disabled');
-            }
-            if (window.pets !== undefined) {
-                window.pets = false;
-            }
+            if (container) container.classList.add('disabled');
+            window.pets = false;
         } else {
             checkbox.disabled = false;
-            if (container) {
-                container.classList.remove('disabled');
-            }
+            if (container) container.classList.remove('disabled');
         }
-        if (window.pets !== undefined && !checkbox.disabled) {
-            // Оставляем значение как есть
-        }
-        if (typeof updateGuestDisplay === 'function') {
-            updateGuestDisplay();
-        }
+        if (typeof updateGuestDisplay === 'function') updateGuestDisplay();
     }
 
     // === ГОСТИ ===
@@ -912,7 +937,6 @@
 
         const adultPlus = document.querySelector('.guest-category:first-child .counter button[data-type="adults"][data-dir="+"]');
         const childPlus = document.querySelector('.guest-category:nth-child(2) .counter button[data-type="children"][data-dir="+"]');
-
         if (adultPlus) adultPlus.disabled = (total >= limit);
         if (childPlus) childPlus.disabled = (total >= limit);
     }
@@ -983,9 +1007,7 @@
             const currentAdults = parseInt(document.getElementById('adultsCount').innerText);
             const currentChildren = parseInt(document.getElementById('childrenCount').innerText);
             let total = currentAdults + currentChildren;
-            if (total >= maxGuests) {
-                return;
-            }
+            if (total >= maxGuests) return;
             if (val < max) span.innerText = ++val;
             updateGuestLimitWarning();
         });
@@ -1013,32 +1035,21 @@
         }
 
         if (hasBookedDaysBetween(checkIn, checkOut)) {
-            const tempCheckIn = formatDateYMD(checkIn);
-            const tempCheckOut = formatDateYMD(checkOut);
-            const adults = parseInt(document.getElementById('adultsCount')?.innerText || '1');
-            const children = parseInt(document.getElementById('childrenCount')?.innerText || '0');
-            const guests = adults + children;
-            const listingId = 1983;
-            const listingTitle = 'Вилла P с частным бассейном - 3 спальни Фукуок (рядом с пляжем)';
-            const chatLink = `../chat.html?context=booking&listing_id=${listingId}&check_in=${tempCheckIn}&check_out=${tempCheckOut}&guests=${guests}&listing_title=${encodeURIComponent(listingTitle)}`;
-            
-            dateError.innerHTML = `Выбранные даты включают занятые дни. Пожалуйста, выберите другие даты. Либо <a href="${chatLink}" style="color:#ff385c; font-weight:600; text-decoration:underline;">свяжитесь с поддержкой</a>. Мы свяжемся с владельцем жилья и уточним есть ли возможность брони на эти даты, т.к. многие владельцы оставляют некоторые даты себе для продажи по повышенному тарифу.`;
-            dateError.style.display = 'block';
+            updateBookingMessage();
+            dateError.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;
         }
 
         if (adults + children > maxGuests) {
-            alert(`Количество гостей (взрослые + дети) не может превышать ${maxGuests}. Пожалуйста, измените выбор.`);
+            alert(`Количество гостей (взрослые + дети) не может превышать ${maxGuests}.`);
             return;
         }
 
         const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
-        const imageForBooking = photos.length > 0 ? photos[0] : '';
-
         const bookingData = {
             listingId: 1983,
             title: 'Вилла P с частным бассейном - 3 спальни Фукуок (рядом с пляжем)',
-            image: imageForBooking,
+            image: photos.length ? photos[0] : '',
             pricePerNight: 7769,
             checkIn: formatDateYMD(checkIn),
             checkOut: formatDateYMD(checkOut),
@@ -1050,20 +1061,15 @@
             totalPrice: nights * 7769,
             maxGuests: maxGuests
         };
-
         localStorage.setItem('bookingData', JSON.stringify(bookingData));
         localStorage.setItem('lastBooking', JSON.stringify(bookingData));
         window.location.href = '../checkout.html';
     });
 
-    // === ВОЗВРАТ НА ГЛАВНУЮ (ПОЛНОСТЬЮ НА JS, БЕЗ index.php) ===
+    // === ВОЗВРАТ НА ГЛАВНУЮ ===
     function goBackOrHome() {
-        if (window.history.length > 1) {
-            window.history.back();
-        } else {
-            // Переход на главную страницу без явного index.php
-            window.location.href = '../';
-        }
+        if (window.history.length > 1) window.history.back();
+        else window.location.href = '../';
     }
 
     // === КАРТА ===
@@ -1083,11 +1089,10 @@
         .openPopup();
 
     // ============================================================
-    //  НОВЫЙ БЛОК – ПЛАВАЮЩАЯ КНОПКА ЧАТА С УВЕДОМЛЕНИЯМИ
+    //  ПЛАВАЮЩАЯ КНОПКА ЧАТА (ОТКРЫВАЕТ БЕЗ ПАРАМЕТРОВ)
     // ============================================================
     (function() {
-        const BASE_URL = 'https://script.google.com/macros/s/AKfycbwu6iYjDr49HMdiyyZKSnaGupRYTR-1vqObxD30GjHCFrX0A3BB9ySwv4b2ZnTKaaKH/exec'; // замените на ваш URL
-        const CHAT_URL = '../chat.html';
+        const BASE_URL = 'https://script.google.com/macros/s/AKfycbwu6iYjDr49HMdiyyZKSnaGupRYTR-1vqObxD30GjHCFrX0A3BB9ySwv4b2ZnTKaaKH/exec';
         const CHECK_INTERVAL = 5000;
 
         let userID = localStorage.getItem('chat_user_id');
@@ -1105,6 +1110,7 @@
         }
 
         let unreadCount = 0;
+
         const fab = document.createElement('button');
         fab.className = 'chat-fab';
         fab.innerHTML = `💬<span class="badge hidden" id="chatBadge">0</span>`;
@@ -1113,7 +1119,7 @@
             unreadCount = 0;
             updateBadge();
             localStorage.setItem('chat_notified_msgids', JSON.stringify([...notifiedIds]));
-            window.location.href = CHAT_URL;
+            window.open('../chat.html', '_blank');
         };
         document.body.appendChild(fab);
         const badge = fab.querySelector('.badge');
@@ -1137,7 +1143,6 @@
             toast.classList.add('show');
             clearTimeout(toastTimeout);
             toastTimeout = setTimeout(() => toast.classList.remove('show'), 5000);
-            // Звук
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const osc = audioCtx.createOscillator();
@@ -1192,7 +1197,6 @@
                 if (newManagerMsg) {
                     updateBadge();
                     showToast();
-                    // Пульсация кнопки
                     fab.classList.add('pulse');
                     setTimeout(() => fab.classList.remove('pulse'), 1200);
                     localStorage.setItem('chat_notified_msgids', JSON.stringify([...notifiedIds]));
