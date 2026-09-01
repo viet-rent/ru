@@ -501,7 +501,7 @@
                 <tr><td>ID объекта</td><td>#1983</td></tr>
                                 <tr><td>PhuQuoc ID</td><td>1549237149093440969</td></tr>
                                 <tr><td>Добавлен на сайт</td><td>
-                    04.05.2025                </td></tr>
+                    26.03.2025                </td></tr>
             </table>
         </div>
         <div>
@@ -667,8 +667,6 @@
     let disabledDates = [];
     let disabledDateStrings = [];
     let fpIn = null, fpOut = null;
-    let lastRefreshTime = 0;
-    let isRefreshing = false;
 
     const DATES_PATH = '../dates/';
 
@@ -748,7 +746,7 @@
     // === ЗАГРУЗКА ДАННЫХ О ЗАНЯТОСТИ ===
     async function loadBookingData() {
         const id = 1983;
-        const url = `${DATES_PATH}${id}.json?t=${Date.now()}`; // обход кеша
+        const url = `${DATES_PATH}${id}.json?t=${Date.now()}`;
         try {
             const response = await fetch(url);
             if (!response.ok) { disabledDates = []; disabledDateStrings = []; return; }
@@ -776,33 +774,19 @@
             disabledDates = [];
             disabledDateStrings = [];
         }
-        // После загрузки обновляем кнопку (если даты уже выбраны)
         updateBookingButton();
     }
 
     // === ФУНКЦИЯ ОБНОВЛЕНИЯ КАЛЕНДАРЕЙ ПРИ ОТКРЫТИИ ===
     async function refreshDisabledDates() {
-        const now = Date.now();
-        // Не чаще 1 раза в 3 секунды
-        if (isRefreshing || (now - lastRefreshTime < 3000)) return;
-        isRefreshing = true;
-        lastRefreshTime = now;
-        try {
-            await loadBookingData(); // загружаем свежие данные
-            if (fpIn && fpOut) {
-                // Обновляем списки заблокированных дат
-                fpIn.set('disable', disabledDates);
-                fpOut.set('disable', disabledDates);
-                // Перерисовываем календари
-                fpIn.redraw();
-                fpOut.redraw();
-                // Обновляем состояние кнопки
-                updateBookingButton();
-            }
-        } catch (e) {
-            console.warn('Ошибка обновления дат:', e);
+        await loadBookingData();
+        if (fpIn && fpOut) {
+            fpIn.set('disable', disabledDates);
+            fpOut.set('disable', disabledDates);
+            fpIn.redraw();
+            fpOut.redraw();
+            updateBookingButton();
         }
-        isRefreshing = false;
     }
 
     // === ИНИЦИАЛИЗАЦИЯ КАЛЕНДАРЕЙ ===
@@ -823,7 +807,7 @@
                 }
             },
             onOpen: function() {
-                refreshDisabledDates(); // при открытии обновляем данные
+                refreshDisabledDates();
             },
             onChange: function(selectedDates, dateStr) {
                 if (selectedDates.length) {
@@ -1166,7 +1150,6 @@
         // Функция показа уведомления (без автоматического скрытия)
         function showToast() {
             toast.classList.add('show');
-            // больше нет автоматического скрытия!
         }
 
         function hideToast() {
@@ -1219,7 +1202,7 @@
 
                 if (newManagerMsg) {
                     updateBadge();
-                    showToast(); // уведомление остаётся до взаимодействия
+                    showToast();
                     fab.classList.add('pulse');
                     setTimeout(() => fab.classList.remove('pulse'), 1200);
                     localStorage.setItem('chat_notified_msgids', JSON.stringify([...notifiedIds]));
@@ -1229,11 +1212,9 @@
             }
         }
 
-        // Первый запуск и периодическая проверка
         checkMessages();
         setInterval(checkMessages, CHECK_INTERVAL);
 
-        // При закрытии страницы сохраняем состояние
         window.addEventListener('beforeunload', function() {
             localStorage.setItem('chat_notified_msgids', JSON.stringify([...notifiedIds]));
         });
