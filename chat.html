@@ -324,7 +324,7 @@
 </main>
 <script>
   // ============================================================
-  //  FRONTEND CHAT
+  //  FRONTEND CHAT (исправлено исчезновение полей при вводе)
   // ============================================================
 
   const BASE_URL = 'https://script.google.com/macros/s/AKfycbwu6iYjDr49HMdiyyZKSnaGupRYTR-1vqObxD30GjHCFrX0A3BB9ySwv4b2ZnTKaaKH/exec'; // замените на ваш GAS URL
@@ -366,6 +366,7 @@
   // ===== УПРАВЛЕНИЕ ВИДИМОСТЬЮ ПОЛЕЙ =====
   function toggleFieldVisibility(input) {
     const value = input.value.trim();
+    // Скрываем только если уже отправлено первое сообщение И поле не пустое
     if (firstMessageSent && value) {
       input.classList.add('hidden-field');
     } else {
@@ -373,6 +374,7 @@
     }
   }
 
+  // При загрузке проверяем сохранённые значения
   const savedEmail = localStorage.getItem('chat_email') || '';
   const savedPhone = localStorage.getItem('chat_phone') || '';
   emailInput.value = savedEmail;
@@ -380,23 +382,25 @@
   toggleFieldVisibility(emailInput);
   toggleFieldVisibility(phoneInput);
 
+  // ===== ИСПРАВЛЕНО: УБРАЛИ ВЫЗОВ toggleFieldVisibility В INPUT/CHANGE =====
   emailInput.addEventListener('input', function() {
     const val = this.value.trim();
     localStorage.setItem('chat_email', val);
-    toggleFieldVisibility(this);
+    // НЕ вызываем toggleFieldVisibility здесь, чтобы поле не исчезало при вводе
   });
 
   phoneInput.addEventListener('input', function() {
     const val = this.value.trim();
     localStorage.setItem('chat_phone', val);
-    toggleFieldVisibility(this);
+    // НЕ вызываем toggleFieldVisibility здесь
   });
 
+  // Также для событий change (автозаполнение) – убрали вызовы
   emailInput.addEventListener('change', function() {
-    toggleFieldVisibility(this);
+    // только сохраняем, без скрытия
   });
   phoneInput.addEventListener('change', function() {
-    toggleFieldVisibility(this);
+    // только сохраняем, без скрытия
   });
 
   // ===== ОСТАЛЬНАЯ ЛОГИКА =====
@@ -525,7 +529,7 @@
     messagesArea.scrollTop = messagesArea.scrollHeight;
   }
 
-  // ===== ОТПРАВКА СООБЩЕНИЯ =====
+  // ===== ОТПРАВКА СООБЩЕНИЯ (с корректным скрытием полей после отправки) =====
   function sendMessage() {
     const name = nameInput.value.trim() || 'Гость';
     const text = msgInput.value.trim();
@@ -541,6 +545,7 @@
       localStorage.setItem('chat_first_message_sent', 'true');
     }
 
+    // Скрываем поля ТОЛЬКО ПОСЛЕ ОТПРАВКИ, если они заполнены
     toggleFieldVisibility(emailInput);
     toggleFieldVisibility(phoneInput);
 
