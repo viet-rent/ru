@@ -577,7 +577,7 @@
         // === КОНФИГУРАЦИЯ ===
         const PATTAYA_CENTER = [10.2333, 103.9667];
         const DEFAULT_ZOOM = 11;
-        const ITEMS_PER_PAGE = 20; // количество объектов на страницу
+        const ITEMS_PER_PAGE = 20;
 
         // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
         let allListings = [];
@@ -586,11 +586,11 @@
         let clusterGroup = null;
         let markerMap = {};
         let currentBounds = null;
-        let highlightedIndex = -1;       // индекс в filteredListings
+        let highlightedIndex = -1;
         let pendingHighlightIndex = -1;
         let selectedObjectIndex = -1;
         let listUpdateTimeout = null;
-        let visibleListings = [];        // отфильтрованные + попадающие в bounds
+        let visibleListings = [];
         let currentPage = 1;
         let totalPages = 1;
         let isDataLoaded = false;
@@ -608,7 +608,6 @@
         const applyBtn = document.getElementById('applyFilters');
         const resetBtn = document.getElementById('resetFilters');
 
-        // === ФУНКЦИЯ ПРЕОБРАЗОВАНИЯ СЖАТОГО ОБЪЕКТА ===
         function expandItem(item) {
             if (Array.isArray(item)) {
                 return item.map(i => expandItem(i));
@@ -629,7 +628,6 @@
             };
         }
 
-        // === ЗАГРУЗКА ДАННЫХ ===
         async function loadData() {
             const files = ['data.json', 'listings.json'];
             let data = null;
@@ -665,7 +663,6 @@
             }
         }
 
-        // === ИНИЦИАЛИЗАЦИЯ ===
         function initApp() {
             if (!allListings.length) {
                 listContainer.innerHTML = `
@@ -713,7 +710,6 @@
                 }
             });
 
-            // Обработчики фильтров
             applyBtn.addEventListener('click', function() {
                 applyFiltersAndSort();
                 highlightedIndex = -1;
@@ -769,7 +765,6 @@
             priceMin.addEventListener('keydown', function(e) { if (e.key === 'Enter') applyBtn.click(); });
             priceMax.addEventListener('keydown', function(e) { if (e.key === 'Enter') applyBtn.click(); });
 
-            // Первоначальная отрисовка
             setTimeout(() => {
                 currentBounds = map.getBounds();
                 updateVisibleList();
@@ -781,7 +776,6 @@
             }, 200);
         }
 
-        // === ФИЛЬТРАЦИЯ И СОРТИРОВКА ===
         function applyFiltersAndSort() {
             let result = [...allListings];
 
@@ -811,7 +805,6 @@
             resultsCount.innerHTML = `Найдено <strong>${filteredListings.length}</strong> объектов`;
         }
 
-        // === ОБНОВЛЕНИЕ СПИСКА ВИДИМЫХ ОБЪЕКТОВ (по границам карты) ===
         function updateVisibleList() {
             if (!map || !isDataLoaded) return;
             const bounds = map.getBounds();
@@ -824,7 +817,6 @@
                 return bounds.contains([lat, lng]);
             });
 
-            // Если выбран объект, помещаем его в начало списка (если он в видимой области)
             if (selectedObjectIndex !== -1 && visible.length > 0) {
                 const selectedItem = filteredListings[selectedObjectIndex];
                 if (selectedItem) {
@@ -843,7 +835,6 @@
             `;
         }
 
-        // === ОТРИСОВКА СТРАНИЦЫ ===
         function renderPage(page) {
             if (!visibleListings.length) {
                 listContainer.innerHTML = `
@@ -852,6 +843,7 @@
                         <p>В этой области нет объектов, соответствующих фильтрам.<br>Переместите карту или измените фильтры.</p>
                     </div>
                 `;
+                paginationWrap.innerHTML = '';
                 return;
             }
 
@@ -864,15 +856,12 @@
             const end = Math.min(start + ITEMS_PER_PAGE, visibleListings.length);
             const pageItems = visibleListings.slice(start, end);
 
-            // Очищаем контейнер
             listContainer.innerHTML = '';
-            // Добавляем прогресс-бар (он может быть уже, но мы его пересоздадим)
             const progressBar = document.createElement('div');
             progressBar.className = 'progress-bar';
             progressBar.innerHTML = '<div class="fill" id="progressFill"></div>';
             listContainer.appendChild(progressBar);
 
-            // Рендерим карточки
             const fragment = document.createDocumentFragment();
             pageItems.forEach(item => {
                 const originalIndex = filteredListings.indexOf(item);
@@ -902,14 +891,11 @@
             });
             listContainer.appendChild(fragment);
 
-            // Применяем подсветку, если она есть
             applyHighlightToCurrentList();
-
-            // Обновляем пагинацию
             renderPagination();
         }
 
-        // === ПАГИНАЦИЯ ===
+        // === ОБНОВЛЁННАЯ ПАГИНАЦИЯ (только стрелки < > и макс. 3 номера) ===
         function renderPagination() {
             if (visibleListings.length === 0) {
                 paginationWrap.innerHTML = '';
@@ -921,64 +907,60 @@
 
             let html = '';
 
-            // Кнопка "Первая"
-            html += `<button class="page-btn arrow" data-page="1" ${current === 1 ? 'disabled' : ''}>&lt;&lt;</button>`;
-            // Кнопка "Назад"
+            // Стрелка "Назад"
             html += `<button class="page-btn arrow" data-page="${current - 1}" ${current <= 1 ? 'disabled' : ''}>&lt;</button>`;
 
-            // Номера страниц
-            const maxVisible = 7;
-            let startPage = Math.max(1, current - Math.floor(maxVisible / 2));
-            let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-            if (endPage - startPage < maxVisible - 1) {
-                startPage = Math.max(1, endPage - maxVisible + 1);
+            // Номера страниц (максимум 3)
+            let pages = [];
+            if (totalPages <= 3) {
+                for (let i = 1; i <= totalPages; i++) pages.push(i);
+            } else {
+                if (current <= 2) {
+                    pages = [1, 2, 3];
+                    if (totalPages > 3) pages.push('...');
+                } else if (current >= totalPages - 1) {
+                    pages = ['...', totalPages - 2, totalPages - 1, totalPages];
+                } else {
+                    pages = ['...', current - 1, current, current + 1, '...'];
+                }
+                // Убираем дублирующиеся многоточия
+                if (pages[0] === '...' && pages[1] === '...') pages.shift();
+                if (pages[pages.length - 1] === '...' && pages[pages.length - 2] === '...') pages.pop();
             }
 
-            if (startPage > 1) {
-                html += `<button class="page-btn" data-page="1">1</button>`;
-                if (startPage > 2) html += `<span class="page-btn dots">…</span>`;
-            }
+            pages.forEach(p => {
+                if (p === '...') {
+                    html += `<span class="page-btn dots">…</span>`;
+                } else {
+                    html += `<button class="page-btn ${p === current ? 'active' : ''}" data-page="${p}">${p}</button>`;
+                }
+            });
 
-            for (let i = startPage; i <= endPage; i++) {
-                html += `<button class="page-btn ${i === current ? 'active' : ''}" data-page="${i}">${i}</button>`;
-            }
-
-            if (endPage < totalPages) {
-                if (endPage < totalPages - 1) html += `<span class="page-btn dots">…</span>`;
-                html += `<button class="page-btn" data-page="${totalPages}">${totalPages}</button>`;
-            }
-
-            // Кнопка "Вперед"
+            // Стрелка "Вперед"
             html += `<button class="page-btn arrow" data-page="${current + 1}" ${current >= totalPages ? 'disabled' : ''}>&gt;</button>`;
-            // Кнопка "Последняя"
-            html += `<button class="page-btn arrow" data-page="${totalPages}" ${current === totalPages ? 'disabled' : ''}>&gt;&gt;</button>`;
 
-            // Информация о странице
+            // Информация о странице (опционально)
             html += `<span class="page-info">${current} / ${totalPages}</span>`;
 
             paginationWrap.innerHTML = html;
 
-            // Обработчики кликов
             paginationWrap.querySelectorAll('.page-btn:not(.dots)').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const page = parseInt(this.dataset.page);
                     if (page && page !== currentPage && page >= 1 && page <= totalPages) {
                         currentPage = page;
                         renderPage(currentPage);
-                        // Прокручиваем список вверх
                         listContainer.scrollTop = 0;
                     }
                 });
             });
         }
 
-        // === ПРИМЕНЕНИЕ ПОДСВЕТКИ ===
         function applyHighlightToCurrentList() {
             if (highlightedIndex === -1 && pendingHighlightIndex === -1) return;
             const targetIndex = pendingHighlightIndex !== -1 ? pendingHighlightIndex : highlightedIndex;
             if (targetIndex === -1) return;
 
-            // Сначала снимаем подсветку со всех
             document.querySelectorAll('.listing-card.highlighted').forEach(el => el.classList.remove('highlighted'));
 
             const card = document.querySelector(`.listing-card[data-index="${targetIndex}"]`);
@@ -988,7 +970,6 @@
                 highlightedIndex = targetIndex;
                 if (pendingHighlightIndex !== -1) pendingHighlightIndex = -1;
             } else {
-                // Карточка не на текущей странице – находим страницу, где она есть
                 const item = filteredListings[targetIndex];
                 if (item) {
                     const pos = visibleListings.indexOf(item);
@@ -997,7 +978,6 @@
                         if (page !== currentPage) {
                             currentPage = page;
                             renderPage(currentPage);
-                            // После рендеринга повторно применим подсветку
                             setTimeout(() => {
                                 const newCard = document.querySelector(`.listing-card[data-index="${targetIndex}"]`);
                                 if (newCard) {
@@ -1013,7 +993,6 @@
             }
         }
 
-        // === ПОДСВЕТКА КАРТОЧКИ ===
         function highlightCard(index) {
             if (highlightedIndex !== -1 && highlightedIndex !== index) {
                 const prev = document.querySelector(`.listing-card[data-index="${highlightedIndex}"]`);
@@ -1023,7 +1002,6 @@
             applyHighlightToCurrentList();
         }
 
-        // === КАРТА ===
         function initMap() {
             map = L.map('map', {
                 center: PATTAYA_CENTER,
@@ -1040,7 +1018,6 @@
             }).addTo(map);
         }
 
-        // === ПОСТРОЕНИЕ КЛАСТЕРОВ ===
         function buildClusters() {
             if (clusterGroup) {
                 map.removeLayer(clusterGroup);
@@ -1142,7 +1119,6 @@
                     if (idx !== -1) {
                         selectedObjectIndex = idx;
                         pendingHighlightIndex = idx;
-                        // Переключаем страницу, если нужно
                         const pos = visibleListings.indexOf(item);
                         if (pos !== -1) {
                             const page = Math.floor(pos / ITEMS_PER_PAGE) + 1;
@@ -1164,7 +1140,6 @@
             map.addLayer(clusterGroup);
         }
 
-        // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
         function escapeHtml(text) {
             if (!text) return '';
             const div = document.createElement('div');
@@ -1172,7 +1147,6 @@
             return div.innerHTML;
         }
 
-        // === ЗАПУСК ===
         loadData();
     })();
 </script>
