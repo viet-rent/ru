@@ -93,26 +93,8 @@
         .guest-modal-actions .apply-btn:hover { background:#e01e4a; }
         .guest-limit-warning { font-size:13px; color:#dc2626; text-align:center; margin-top:8px; display:none; }
         .guest-limit-warning.show { display:block; }
-        .book-btn {
-            width:100%;
-            padding:14px;
-            background:#ff385c;
-            color:white;
-            border:none;
-            border-radius:12px;
-            font-size:16px;
-            font-weight:600;
-            cursor:pointer;
-            margin-top:16px;
-            transition: opacity 0.3s, background 0.3s;
-        }
+        .book-btn { width:100%; padding:14px; background:#ff385c; color:white; border:none; border-radius:12px; font-size:16px; font-weight:600; cursor:pointer; margin-top:16px; }
         .book-btn:hover { background:#e01e4a; }
-        .book-btn:disabled {
-            opacity: 0.5 !important;
-            cursor: not-allowed !important;
-            background: #ccc !important;
-            pointer-events: none !important;
-        }
         .flatpickr-calendar { max-width:320px !important; width:auto !important; z-index:10000 !important; }
         .leaflet-popup-close-button { position:absolute; top:8px; right:8px; width:28px; height:28px; background:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; cursor:pointer; z-index:10; box-shadow:0 1px 8px rgba(0,0,0,0.1); }
         .leaflet-popup-close-button:hover { background:#f7f7f7; }
@@ -392,6 +374,7 @@
         
     <div class="content-grid">
         <div>
+            <!-- Левая колонка (без изменений) -->
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
                 <h1 class="listing-title">Вилла P с частным бассейном - 3 спальни Фукуок (рядом с пляжем)</h1>
                             </div>
@@ -515,7 +498,7 @@
                 <tr><td>ID объекта</td><td>#1983</td></tr>
                                 <tr><td>PhuQuoc ID</td><td>1549237149093440969</td></tr>
                                 <tr><td>Добавлен на сайт</td><td>
-                    05.03.2025                </td></tr>
+                    14.05.2024                </td></tr>
             </table>
         </div>
         <div>
@@ -542,7 +525,7 @@
                         <span class="guest-picker-label">ГОСТИ</span>
                         <div class="guest-picker-value" id="guestPickerValue">1 гость</div>
                     </div>
-                    <button type="submit" class="book-btn" id="bookBtn">Забронировать</button>
+                    <button type="submit" class="book-btn">Забронировать</button>
                 </form>
             </div>
         </div>
@@ -676,7 +659,6 @@
     const checkInContainer = document.getElementById('checkInInput');
     const checkOutContainer = document.getElementById('checkOutInput');
     const dateError = document.getElementById('dateError');
-    const bookBtn = document.getElementById('bookBtn');
 
     let disabledDates = [];
     let disabledDateStrings = [];
@@ -684,21 +666,7 @@
 
     const DATES_PATH = '../dates/';
 
-    // ===== УПРАВЛЕНИЕ КНОПКОЙ "ЗАБРОНИРОВАТЬ" (исправлено) =====
-    function updateBookButtonState() {
-        if (!bookBtn) {
-            console.warn('Кнопка bookBtn не найдена');
-            return;
-        }
-        const isBooked = checkIn && checkOut && hasBookedDaysBetween(checkIn, checkOut);
-        if (isBooked) {
-            bookBtn.setAttribute('disabled', 'disabled');
-        } else {
-            bookBtn.removeAttribute('disabled');
-        }
-    }
-
-    // ===== ФУНКЦИЯ ДЛЯ ПОСТРОЕНИЯ ССЫЛКИ НА ЧАТ =====
+    // ===== ФУНКЦИЯ ДЛЯ ПОСТРОЕНИЯ ССЫЛКИ НА ЧАТ (ТОЛЬКО ДЛЯ СООБЩЕНИЯ ОБ ОШИБКЕ) =====
     function buildChatLink() {
         let params = new URLSearchParams();
         params.set('context', 'booking');
@@ -772,20 +740,6 @@
             disabledDates = [];
             disabledDateStrings = [];
         }
-        // После загрузки обновляем состояние кнопки
-        updateBookButtonState();
-    }
-
-    // === ОБНОВЛЕНИЕ СООБЩЕНИЯ О ЗАНЯТОСТИ ===
-    function updateBookingMessage() {
-        if (checkIn && checkOut && hasBookedDaysBetween(checkIn, checkOut)) {
-            const chatLink = buildChatLink();
-            dateError.innerHTML = `Выбранные даты включают занятые дни. Пожалуйста, выберите другие даты. Либо <a href="${chatLink}" target="_blank" style="color:#ff385c; font-weight:600; text-decoration:underline;">свяжитесь с поддержкой</a>. Мы свяжемся с владельцем жилья и уточним есть ли возможность брони на эти даты, т.к. многие владельцы оставляют некоторые даты себе для продажи по повышенному тарифу.`;
-            dateError.style.display = 'block';
-        } else {
-            dateError.style.display = 'none';
-        }
-        updateBookButtonState();
     }
 
     // === ИНИЦИАЛИЗАЦИЯ КАЛЕНДАРЕЙ ===
@@ -821,10 +775,15 @@
                     } else {
                         fpOut.set('minDate', checkIn);
                     }
-                    updateBookingMessage();
-                    if (!hasBookedDaysBetween(checkIn, checkOut)) {
-                        fpOut.open();
+                    if (checkIn && checkOut && hasBookedDaysBetween(checkIn, checkOut)) {
+                        const chatLink = buildChatLink();
+                        dateError.innerHTML = `Выбранные даты включают занятые дни. Пожалуйста, выберите другие даты. Либо <a href="${chatLink}" target="_blank" style="color:#ff385c; font-weight:600; text-decoration:underline;">свяжитесь с поддержкой</a> и мы уточним у владельца возможность освободить ваши даты. Мы свяжемся с владельцем жилья и уточним есть ли возможность брони на эти даты, т.к. многие владельцы оставляют некоторые даты себе для продажи по повышенному тарифу.`;
+                        dateError.style.display = 'block';
+                        return;
+                    } else {
+                        dateError.style.display = 'none';
                     }
+                    fpOut.open();
                 }
             }
         });
@@ -848,13 +807,16 @@
                         return;
                     }
                     if (checkIn && newCheckOut && hasBookedDaysBetween(checkIn, newCheckOut)) {
-                        updateBookingMessage();
+                        const chatLink = buildChatLink();
+                        dateError.innerHTML = `Выбранные даты включают занятые дни. Пожалуйста, выберите другие даты. Либо <a href="${chatLink}" target="_blank" style="color:#ff385c; font-weight:600; text-decoration:underline;">свяжитесь с поддержкой</a>. Мы свяжемся с владельцем жилья и уточним есть ли возможность брони на эти даты, т.к. многие владельцы оставляют некоторые даты себе для продажи по повышенному тарифу.`;
+                        dateError.style.display = 'block';
                         return;
+                    } else {
+                        dateError.style.display = 'none';
                     }
                     checkOut = newCheckOut;
                     checkOutHidden.value = formatDateYMD(checkOut);
                     checkOutDisplay.value = dateStr;
-                    updateBookingMessage();
                 }
             }
         });
@@ -873,8 +835,6 @@
             fpIn.redraw();
             fpOut.redraw();
         }
-        // После инициализации календарей обновляем кнопку
-        updateBookButtonState();
     }
 
     initDatePickers();
@@ -1035,8 +995,9 @@
         }
 
         if (hasBookedDaysBetween(checkIn, checkOut)) {
-            updateBookingMessage();
-            dateError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const chatLink = buildChatLink();
+            dateError.innerHTML = `Выбранные даты включают занятые дни. Пожалуйста, выберите другие даты. Либо <a href="${chatLink}" target="_blank" style="color:#ff385c; font-weight:600; text-decoration:underline;">свяжитесь с поддержкой</a>. Мы свяжемся с владельцем жилья и уточним есть ли возможность брони на эти даты, т.к. многие владельцы оставляют некоторые даты себе для продажи по повышенному тарифу.`;
+            dateError.style.display = 'block';
             return;
         }
 
@@ -1092,7 +1053,7 @@
     //  ПЛАВАЮЩАЯ КНОПКА ЧАТА (ОТКРЫВАЕТ БЕЗ ПАРАМЕТРОВ)
     // ============================================================
     (function() {
-        const BASE_URL = 'https://script.google.com/macros/s/AKfycbwu6iYjDr49HMdiyyZKSnaGupRYTR-1vqObxD30GjHCFrX0A3BB9ySwv4b2ZnTKaaKH/exec';
+        const BASE_URL = 'https://script.google.com/macros/s/AKfycbwu6iYjDr49HMdiyyZKSnaGupRYTR-1vqObxD30GjHCFrX0A3BB9ySwv4b2ZnTKaaKH/exec'; // замените на ваш URL
         const CHECK_INTERVAL = 5000;
 
         let userID = localStorage.getItem('chat_user_id');
@@ -1115,11 +1076,12 @@
         fab.className = 'chat-fab';
         fab.innerHTML = `💬<span class="badge hidden" id="chatBadge">0</span>`;
         fab.setAttribute('aria-label', 'Открыть чат поддержки');
+        // === КНОПКА ЧАТА ОТКРЫВАЕТ БЕЗ ПАРАМЕТРОВ ===
         fab.onclick = function() {
             unreadCount = 0;
             updateBadge();
             localStorage.setItem('chat_notified_msgids', JSON.stringify([...notifiedIds]));
-            window.open('../chat.html', '_blank');
+            window.open('../chat.html', '_blank'); // просто переход без параметров
         };
         document.body.appendChild(fab);
         const badge = fab.querySelector('.badge');
