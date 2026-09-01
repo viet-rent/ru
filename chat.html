@@ -687,7 +687,7 @@
         localStorage.setItem('chat_username', nameInput.value);
       }
 
-      const message = `Здравствуйте! Я хотел бы забронировать объект "${listingTitle}" (ID: ${listingId}) на даты с ${checkIn} по ${checkOut} для ${guests} гостей. Но система показывает, что эти даты заняты. Возможно ли связаться с владельцем и уточнить возможность бронирования? Спасибо!`;
+      const message = `Здравствуйте! Я хотел бы забронировать объект "${listingTitle}" (ID: ${listingId}) на даты с ${checkIn} по ${checkOut}. Но система показывает, что эти даты заняты. Возможно ли связаться с владельцем и уточнить возможность бронирования? Спасибо!`;
 
       msgInput.value = message;
       sendMessage();
