@@ -289,7 +289,7 @@
 <header class="header">
   <a href="/" class="logo"><i class="fas fa-home"></i>VietRent</a>
   <div class="header-controls">
-    <a href="/"><i class="fas fa-arrow-left"></i> На главную</a>
+    <a href="../" class="logo">🏝️🏠VietRent</a>
   </div>
 </header>
 <main class="main">
@@ -323,13 +323,10 @@
   </div>
 </main>
 <script>
-  // ============================================================
-  //  FRONTEND CHAT (исправлено исчезновение полей при вводе)
-  // ============================================================
 
   const BASE_URL = 'https://script.google.com/macros/s/AKfycbwu6iYjDr49HMdiyyZKSnaGupRYTR-1vqObxD30GjHCFrX0A3BB9ySwv4b2ZnTKaaKH/exec'; // замените на ваш GAS URL
 
-  // ----- IP -----
+
   let userIP = 'unknown';
   (async function fetchIP() {
     try {
@@ -339,7 +336,6 @@
     } catch (e) { /* ignore */ }
   })();
 
-  // ----- USER ID -----
   let userID = localStorage.getItem('chat_user_id');
   if (!userID) {
     userID = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
@@ -349,12 +345,10 @@
   const API_URL = BASE_URL + '?userID=' + encodeURIComponent(userID);
   const POST_URL = BASE_URL;
 
-  // ----- Состояние -----
   let messages = [];
   let msgIds = new Set();
   let firstMessageSent = localStorage.getItem('chat_first_message_sent') === 'true';
 
-  // ----- DOM -----
   const messagesArea = document.getElementById('messagesArea');
   const nameInput = document.getElementById('nameInput');
   const msgInput = document.getElementById('msgInput');
@@ -363,7 +357,6 @@
   const emailInput = document.getElementById('emailInput');
   const phoneInput = document.getElementById('phoneInput');
 
-  // ===== УПРАВЛЕНИЕ ВИДИМОСТЬЮ ПОЛЕЙ =====
   function toggleFieldVisibility(input) {
     const value = input.value.trim();
     // Скрываем только если уже отправлено первое сообщение И поле не пустое
@@ -374,7 +367,6 @@
     }
   }
 
-  // При загрузке проверяем сохранённые значения
   const savedEmail = localStorage.getItem('chat_email') || '';
   const savedPhone = localStorage.getItem('chat_phone') || '';
   emailInput.value = savedEmail;
@@ -382,28 +374,24 @@
   toggleFieldVisibility(emailInput);
   toggleFieldVisibility(phoneInput);
 
-  // ===== ИСПРАВЛЕНО: УБРАЛИ ВЫЗОВ toggleFieldVisibility В INPUT/CHANGE =====
   emailInput.addEventListener('input', function() {
     const val = this.value.trim();
     localStorage.setItem('chat_email', val);
-    // НЕ вызываем toggleFieldVisibility здесь, чтобы поле не исчезало при вводе
   });
 
   phoneInput.addEventListener('input', function() {
     const val = this.value.trim();
     localStorage.setItem('chat_phone', val);
-    // НЕ вызываем toggleFieldVisibility здесь
   });
 
-  // Также для событий change (автозаполнение) – убрали вызовы
   emailInput.addEventListener('change', function() {
-    // только сохраняем, без скрытия
+    
   });
   phoneInput.addEventListener('change', function() {
-    // только сохраняем, без скрытия
+
   });
 
-  // ===== ОСТАЛЬНАЯ ЛОГИКА =====
+
   const savedName = localStorage.getItem('chat_username');
   if (savedName) nameInput.value = savedName;
 
@@ -529,7 +517,7 @@
     messagesArea.scrollTop = messagesArea.scrollHeight;
   }
 
-  // ===== ОТПРАВКА СООБЩЕНИЯ (с корректным скрытием полей после отправки) =====
+
   function sendMessage() {
     const name = nameInput.value.trim() || 'Гость';
     const text = msgInput.value.trim();
@@ -545,7 +533,7 @@
       localStorage.setItem('chat_first_message_sent', 'true');
     }
 
-    // Скрываем поля ТОЛЬКО ПОСЛЕ ОТПРАВКИ, если они заполнены
+
     toggleFieldVisibility(emailInput);
     toggleFieldVisibility(phoneInput);
 
@@ -623,7 +611,7 @@
     }
   });
 
-  // ----- Запуск -----
+
   const stored = localStorage.getItem('chat_messages');
   if (stored) {
     try {
@@ -646,10 +634,7 @@
   loadMessages();
   setInterval(loadMessages, 5000);
 
-  // ============================================================
-  //  АВТОМАТИЧЕСКАЯ ОТПРАВКА СООБЩЕНИЯ ПРИ ПЕРЕХОДЕ ИЗ ОБЪЕКТА
-  //  (ТОЛЬКО JAVASCRIPT, БЕЗ PHP)
-  // ============================================================
+
   (function() {
     const urlParams = new URLSearchParams(window.location.search);
     const context = urlParams.get('context');
