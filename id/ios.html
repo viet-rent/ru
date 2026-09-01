@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
     <style>
-        /* ===== ВСЕ ОРИГИНАЛЬНЫЕ СТИЛИ ===== */
+        /* ===== ВСЕ ОРИГИНАЛЬНЫЕ СТИЛИ (БЕЗ ИЗМЕНЕНИЙ) ===== */
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:#fff; }
         .header { padding:20px 80px; border-bottom:1px solid #ebebeb; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:white; z-index:100; }
@@ -103,7 +103,7 @@
         @media (max-width:1024px) { .header,.container { padding:20px; } .content-grid { grid-template-columns:1fr; gap:40px; } .booking-card { position:static; } }
         @media (max-width:768px) { .date-inputs { flex-direction:column; } .date-input { min-width:100%; } .flatpickr-calendar { max-width:calc(100% - 32px) !important; width:auto !important; } .carousel-main { height:300px; } .highlights-grid { grid-template-columns:1fr; } .amenities-grid { grid-template-columns:1fr; } .guest-modal-content { padding:20px 16px; max-width:100%; } }
 
-        /* ===== НОВЫЕ СТИЛИ ДЛЯ КНОПКИ ЧАТА ===== */
+        /* ===== СТИЛИ ДЛЯ КНОПКИ ЧАТА (СПРАВА СНИЗУ) ===== */
         .chat-fab {
             position: fixed;
             bottom: 30px;
@@ -374,6 +374,7 @@
         
     <div class="content-grid">
         <div>
+            <!-- Левая колонка (без изменений) -->
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
                 <h1 class="listing-title">Вилла P с частным бассейном - 3 спальни Фукуок (рядом с пляжем)</h1>
                             </div>
@@ -497,7 +498,7 @@
                 <tr><td>ID объекта</td><td>#1983</td></tr>
                                 <tr><td>PhuQuoc ID</td><td>1549237149093440969</td></tr>
                                 <tr><td>Добавлен на сайт</td><td>
-                    31.03.2026                </td></tr>
+                    01.12.2024                </td></tr>
             </table>
         </div>
         <div>
@@ -582,7 +583,7 @@
     const listingData = {"id":1983,"title":"\u0412\u0438\u043b\u043b\u0430 P \u0441 \u0447\u0430\u0441\u0442\u043d\u044b\u043c \u0431\u0430\u0441\u0441\u0435\u0439\u043d\u043e\u043c - 3 \u0441\u043f\u0430\u043b\u044c\u043d\u0438 \u0424\u0443\u043a\u0443\u043e\u043a (\u0440\u044f\u0434\u043e\u043c \u0441 \u043f\u043b\u044f\u0436\u0435\u043c)","image":"https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/2ac99e6c-ae35-4877-9af3-8c24e6671d4b.jpeg","price":7769,"originalPrice":77686,"guests":8,"city":"\u0424\u0443\u043a\u0443\u043e\u043a","address":"","lat":10.1508,"lng":103.98036999999999,"url":"listing.php?id=1983"};
     localStorage.setItem('listingData', JSON.stringify(listingData));
 
-    // === Глобальные константы для JS ===
+    // === Глобальные константы ===
     const LISTING_ID = listingData.id;
     const LISTING_TITLE = listingData.title;
 
@@ -665,12 +666,11 @@
 
     const DATES_PATH = '../dates/';
 
-    // ===== ФУНКЦИЯ ДЛЯ ПОСТРОЕНИЯ ССЫЛКИ НА ЧАТ (ТОЛЬКО JS) =====
+    // ===== ФУНКЦИЯ ДЛЯ ПОСТРОЕНИЯ ССЫЛКИ НА ЧАТ (ТОЛЬКО ДЛЯ СООБЩЕНИЯ ОБ ОШИБКЕ) =====
     function buildChatLink() {
         let params = new URLSearchParams();
         params.set('context', 'booking');
         params.set('listing_id', LISTING_ID);
-        // Даты: если не выбраны – сегодня и завтра
         let checkInDate = checkIn ? new Date(checkIn) : new Date();
         let checkOutDate = checkOut ? new Date(checkOut) : new Date(checkInDate);
         if (!checkOut || checkOut <= checkIn) {
@@ -679,7 +679,6 @@
         }
         params.set('check_in', formatDateYMD(checkInDate));
         params.set('check_out', formatDateYMD(checkOutDate));
-        // Гости
         const adults = parseInt(document.getElementById('adultsCount')?.innerText || '1');
         const children = parseInt(document.getElementById('childrenCount')?.innerText || '0');
         params.set('guests', adults + children);
@@ -687,13 +686,7 @@
         return '../chat.html?' + params.toString();
     }
 
-    // Функция открытия чата в новой вкладке
-    function openChatInNewTab() {
-        const link = buildChatLink();
-        window.open(link, '_blank');
-    }
-
-    // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ДАТ ===
+    // === ФУНКЦИИ ДЛЯ ДАТ ===
     function formatDateYMD(date) {
         let d = date.getDate(), m = date.getMonth()+1, y = date.getFullYear();
         return `${y}-${m<10?'0'+m:m}-${d<10?'0'+d:d}`;
@@ -1057,7 +1050,7 @@
         .openPopup();
 
     // ============================================================
-    //  ПЛАВАЮЩАЯ КНОПКА ЧАТА (СПРАВА СНИЗУ) + УВЕДОМЛЕНИЯ
+    //  ПЛАВАЮЩАЯ КНОПКА ЧАТА (ОТКРЫВАЕТ БЕЗ ПАРАМЕТРОВ)
     // ============================================================
     (function() {
         const BASE_URL = 'https://script.google.com/macros/s/AKfycbwu6iYjDr49HMdiyyZKSnaGupRYTR-1vqObxD30GjHCFrX0A3BB9ySwv4b2ZnTKaaKH/exec'; // замените на ваш URL
@@ -1083,12 +1076,12 @@
         fab.className = 'chat-fab';
         fab.innerHTML = `💬<span class="badge hidden" id="chatBadge">0</span>`;
         fab.setAttribute('aria-label', 'Открыть чат поддержки');
-        // При клике – открываем чат в новой вкладке через JS
+        // === КНОПКА ЧАТА ОТКРЫВАЕТ БЕЗ ПАРАМЕТРОВ ===
         fab.onclick = function() {
             unreadCount = 0;
             updateBadge();
             localStorage.setItem('chat_notified_msgids', JSON.stringify([...notifiedIds]));
-            openChatInNewTab(); // используем глобальную функцию
+            window.open('../chat.html', '_blank'); // просто переход без параметров
         };
         document.body.appendChild(fab);
         const badge = fab.querySelector('.badge');
