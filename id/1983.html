@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -11,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
     <style>
-        /* ... все стили без изменений ... */
+        /* ===== ВСЕ ОРИГИНАЛЬНЫЕ СТИЛИ (БЕЗ ИЗМЕНЕНИЙ) ===== */
         * { margin:0; padding:0; box-sizing:border-box; }
         body { font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background:#fff; }
         .header { padding:20px 80px; border-bottom:1px solid #ebebeb; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:white; z-index:100; }
@@ -93,7 +94,8 @@
         .guest-limit-warning { font-size:13px; color:#dc2626; text-align:center; margin-top:8px; display:none; }
         .guest-limit-warning.show { display:block; }
         .book-btn { width:100%; padding:14px; background:#ff385c; color:white; border:none; border-radius:12px; font-size:16px; font-weight:600; cursor:pointer; margin-top:16px; }
-        .book-btn:hover { background:#e01e4a; }
+        .book-btn:hover:not(:disabled) { background:#e01e4a; }
+        .book-btn:disabled { opacity:0.5; cursor:not-allowed; }
         .flatpickr-calendar { max-width:320px !important; width:auto !important; z-index:10000 !important; }
         .leaflet-popup-close-button { position:absolute; top:8px; right:8px; width:28px; height:28px; background:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; cursor:pointer; z-index:10; box-shadow:0 1px 8px rgba(0,0,0,0.1); }
         .leaflet-popup-close-button:hover { background:#f7f7f7; }
@@ -101,6 +103,169 @@
         .flatpickr-day.booked:hover { background:#f0f0f0 !important; }
         @media (max-width:1024px) { .header,.container { padding:20px; } .content-grid { grid-template-columns:1fr; gap:40px; } .booking-card { position:static; } }
         @media (max-width:768px) { .date-inputs { flex-direction:column; } .date-input { min-width:100%; } .flatpickr-calendar { max-width:calc(100% - 32px) !important; width:auto !important; } .carousel-main { height:300px; } .highlights-grid { grid-template-columns:1fr; } .amenities-grid { grid-template-columns:1fr; } .guest-modal-content { padding:20px 16px; max-width:100%; } }
+
+        /* ===== СТИЛИ ДЛЯ КНОПКИ ЧАТА (СПРАВА СНИЗУ) ===== */
+        .chat-fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff385c, #e01e4a);
+            color: white;
+            border: none;
+            box-shadow: 0 8px 28px rgba(255,56,92,0.5);
+            font-size: 32px;
+            cursor: pointer;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        box-shadow 0.3s ease,
+                        background 0.3s ease;
+            will-change: transform;
+        }
+        .chat-fab:hover {
+            transform: scale(1.12) rotate(-4deg);
+            box-shadow: 0 12px 36px rgba(255,56,92,0.7);
+            background: linear-gradient(135deg, #ff5a7a, #c01a3e);
+        }
+        .chat-fab:active {
+            transform: scale(0.92);
+        }
+        .chat-fab .badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #ff2d55;
+            color: white;
+            border-radius: 50%;
+            min-width: 26px;
+            height: 26px;
+            padding: 0 6px;
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 10px rgba(255,45,85,0.6);
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 2px solid white;
+        }
+        .chat-fab .badge.hidden {
+            transform: scale(0);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .chat-fab.pulse {
+            animation: fabPulse 0.6s ease 2;
+        }
+        @keyframes fabPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+
+        .chat-toast {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            background: rgba(26,26,46,0.95);
+            backdrop-filter: blur(8px);
+            color: #fff;
+            padding: 18px 24px;
+            border-radius: 20px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+            font-family: 'Inter', -apple-system, sans-serif;
+            font-size: 15px;
+            z-index: 99999;
+            max-width: 400px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            transform: translateX(calc(100% + 40px));
+            opacity: 0;
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        opacity 0.4s ease;
+            border-left: 5px solid #ff385c;
+            pointer-events: none;
+            cursor: pointer;
+        }
+        .chat-toast.show {
+            transform: translateX(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .chat-toast .icon {
+            font-size: 30px;
+            line-height: 1;
+            background: rgba(255,56,92,0.15);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .chat-toast .content {
+            flex: 1;
+        }
+        .chat-toast .title {
+            font-weight: 600;
+            margin-bottom: 2px;
+            font-size: 16px;
+        }
+        .chat-toast .desc {
+            font-size: 14px;
+            opacity: 0.85;
+        }
+        .chat-toast .close {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: #ccc;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 50%;
+            transition: background 0.2s, color 0.2s;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .chat-toast .close:hover {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+        @media (max-width: 480px) {
+            .chat-fab {
+                bottom: 20px;
+                right: 20px;
+                width: 56px;
+                height: 56px;
+                font-size: 26px;
+            }
+            .chat-fab .badge {
+                min-width: 22px;
+                height: 22px;
+                font-size: 11px;
+                top: -2px;
+                right: -2px;
+            }
+            .chat-toast {
+                top: 12px;
+                right: 12px;
+                left: 12px;
+                max-width: unset;
+                padding: 14px 18px;
+                font-size: 14px;
+            }
+            .chat-toast .icon {
+                width: 40px;
+                height: 40px;
+                font-size: 24px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -212,6 +377,7 @@
         
     <div class="content-grid">
         <div>
+            <!-- Левая колонка (без изменений) -->
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
                 <h1 class="listing-title">Вилла P с частным бассейном - 3 спальни Фукуок (рядом с пляжем)</h1>
                             </div>
@@ -321,11 +487,11 @@
                         </div>
                                             </div>
                                                     <h2 class="section-title">Описание</h2>
-            <div class="description-text">Местоположение:? До пляжа: 1,5 км.Расстояние до аэропорта: 4 км.? До рынка: 1 км.3 спальни, 3 кровати, 4 туалета.Есть 1 дополнительный матрас.Стандартный /6 взрослых + 2 детей младше- Отдельный бассейн.Кухня/зона для барбекюСобственная кухня ? Бесплатная стиральная машина – Посудомоечная машина☕️Кофемашина предоставляется.Примечание: камера может видеть коридор, чтобы предотвратить проблемы с безопасностью.<br />
+            <div class="description-text">Местоположение:? До пляжа: 1,5 км.Расстояние до аэропорта: 4 км.? До рынка: 1 км.3 спальни, 3 кровати, 4 туалета.Есть 1 дополнительный матрас.Стандартный /6 взрослых + 2 детей младше- Отдельный бассейн.Кухня/зона для барбекюСобственная кухня ? Бесплатная стиральная машина – Посудомоечная машина☕️Кофемашина предоставляется.Примечание: камера может видеть коридор, чтобы предотвратить проблемы с безопасностью.<br />
 <br />
-**?️ МЕБЕЛЬ И УДОБСТВА НА ВИЛЛЕ? Удобства на вилле (краткое описание) * *1. Личные удобства•tПолотенца: 6 штук. Банные полотенца: 6 штук.•tЗубная щетка, бритва, гель для душа, шампунь, расческа.2. Бесплатные напитки • Бесплатные напитки•tКофемашина: 4 шт. — Кофейные капсулы: 4 шт.•tЧай: 2 штуки.•tБутилированная вода: 6 бутылок.3. Принадлежности• tСредство для мытья посуды: бесплатно - Средство для мытья посуды: бесплатно   •tСредство для стирки: бесплатно - Средство для стирки: бесплатно• tТаблетки для посудомоечной машины: 3 шт. бесплатно.4. Бытовая техника на вилле • Бытовая техника• tФен: 1 • tЭлектрическая кастрюля — электрическая сковорода: 1•tУтюг: 1.• tГриль для барбекю (гости готовят уголь и спирт).• tОсновные кухонные принадлежности.<br />
+**?️ МЕБЕЛЬ И УДОБСТВА НА ВИЛЛЕ? Удобства на вилле (краткое описание) * *1. Личные удобства•tПолотенца: 6 штук. Банные полотенца: 6 штук.•tЗубная щетка, бритва, гель для душа, шампунь, расческа.2. Бесплатные напитки • Бесплатные напитки•tКофемашина: 4 шт. — Кофейные капсулы: 4 шт.•tЧай: 2 штуки.•tБутилированная вода: 6 бутылок.3. Принадлежности• tСредство для мытья посуды: бесплатно - Средство для мытья посуды: бесплатно   •tСредство для стирки: бесплатно - Средство для стирки: бесплатно• tТаблетки для посудомоечной машины: 3 шт. бесплатно.4. Бытовая техника на вилле • Бытовая техника• tФен: 1 • tЭлектрическая кастрюля — электрическая сковорода: 1•tУтюг: 1.• tГриль для барбекю (гости готовят уголь и спирт).• tОсновные кухонные принадлежности.<br />
 <br />
-?Страны за пределами зоны обслуживания: Индия **? ПРАВИЛА ОБСЛУЖИВАНИЯИнформация об услугах **❌Пожалуйста, не шумите после 22:00. Не шумите после 22:00.  •tПредоставляем предметы при регистрации и пополняем их на 3-й день (по запросу гостя).Удобства предоставляются при заселении и пополняются на 3-й день по запросу.•tУборка и смена штор каждые 3 дня (по запросу гостей).Уборка и смена постельного белья каждые 3 дня по запросу.• tПлата за уборку (еда/напитки/мытье посуды): 300 000 – 500 000 донгов.Плата за уборку: 300 000–500 000 вьетнамских донгов (в зависимости от состояния).❌ В доме и комнате строго запрещено курение, употребление дуриана и продуктов с сильным запахом. В случае обнаружения будет наложен штраф в размере 3 000 000. ❌ Запрещено мусорить и рвать в бассейне. Плата за замену воды и уборку составит 5 000 000.• tЗалог за мебель: 2 000 000 вьетнамских донгов — возвращается при выезде.Залог за сохранность имущества: 2 000 000 донгов – возвращается при выезде.•?Гостям необходимо предоставить паспорт для регистрации.→ Гости обязаны предъявить паспорта для регистрации.</div>
+?Страны за пределами зоны обслуживания: Индия **? ПРАВИЛА ОБСЛУЖИВАНИЯИнформация об услугах **❌Пожалуйста, не шумите после 22:00. Не шумите после 22:00.  •tПредоставляем предметы при регистрации и пополняем их на 3-й день (по запросу гостя).Удобства предоставляются при заселении и пополняются на 3-й день по запросу.•tУборка и смена штор каждые 3 дня (по запросу гостей).Уборка и смена постельного белья каждые 3 дня по запросу.• tПлата за уборку (еда/напитки/мытье посуды): 300 000 – 500 000 донгов.Плата за уборку: 300 000–500 000 вьетнамских донгов (в зависимости от состояния).❌ В доме и комнате строго запрещено курение, употребление дуриана и продуктов с сильным запахом. В случае обнаружения будет наложен штраф в размере 3 000 000. ❌ Запрещено мусорить и рвать в бассейне. Плата за замену воды и уборку составит 5 000 000.• tЗалог за мебель: 2 000 000 вьетнамских донгов — возвращается при выезде.Залог за сохранность имущества: 2 000 000 донгов – возвращается при выезде.•?Гостям необходимо предоставить паспорт для регистрации.→ Гости обязаны предъявить паспорта для регистрации.</div>
                                                 <h2 class="section-title">Где вы будете</h2>
             <div id="map"></div>
                         <h2 class="section-title">Подробнее о жилье</h2>
@@ -335,7 +501,7 @@
                 <tr><td>ID объекта</td><td>#1983</td></tr>
                                 <tr><td>PhuQuoc ID</td><td>1549237149093440969</td></tr>
                                 <tr><td>Добавлен на сайт</td><td>
-                    06.10.2024                </td></tr>
+                    10.11.2025                </td></tr>
             </table>
         </div>
         <div>
@@ -362,7 +528,7 @@
                         <span class="guest-picker-label">ГОСТИ</span>
                         <div class="guest-picker-value" id="guestPickerValue">1 гость</div>
                     </div>
-                    <button type="submit" class="book-btn">Забронировать</button>
+                    <button type="submit" class="book-btn" id="bookBtn" disabled>Забронировать</button>
                 </form>
             </div>
         </div>
@@ -420,11 +586,14 @@
     const listingData = {"id":1983,"title":"\u0412\u0438\u043b\u043b\u0430 P \u0441 \u0447\u0430\u0441\u0442\u043d\u044b\u043c \u0431\u0430\u0441\u0441\u0435\u0439\u043d\u043e\u043c - 3 \u0441\u043f\u0430\u043b\u044c\u043d\u0438 \u0424\u0443\u043a\u0443\u043e\u043a (\u0440\u044f\u0434\u043e\u043c \u0441 \u043f\u043b\u044f\u0436\u0435\u043c)","image":"https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/2ac99e6c-ae35-4877-9af3-8c24e6671d4b.jpeg","price":7769,"originalPrice":77686,"guests":8,"city":"\u0424\u0443\u043a\u0443\u043e\u043a","address":"","lat":10.1508,"lng":103.98036999999999,"url":"listing.php?id=1983"};
     localStorage.setItem('listingData', JSON.stringify(listingData));
 
+    // === Глобальные константы ===
+    const LISTING_ID = listingData.id;
+    const LISTING_TITLE = listingData.title;
+
     // === КАРУСЕЛЬ ===
     var photos = ["https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/2ac99e6c-ae35-4877-9af3-8c24e6671d4b.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/2b7a8b18-c707-4627-bbbe-25f07936b133.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/045952aa-fcca-4c97-932b-adec7b3caff6.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/391cfdd3-a7e9-470f-9b3e-db7542d97283.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/1c58d7fa-8cda-4dd3-9e99-146b9ca0cea7.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/d3ba3a7f-1d91-4d1c-8792-5fbb25e47186.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/b5466c7f-3a47-4c4e-bd8f-8905fecd666e.png","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/beb997ba-61c9-4ab3-8db9-6ba1d79ebdeb.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/be84f86e-7e8a-469f-a0b5-d9d89bb8b1fe.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/9ead7c74-7e03-4063-bc8b-09733edcee9a.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/c9e45a7a-306c-48f2-91e2-bd517daaac94.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/8e6e43cc-3183-4843-8754-415d58fb0014.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/ac85e235-3347-4e28-a2b4-0074dfd7bb58.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/4c3e91d5-6aa1-4dab-8adb-f0eda0738eb3.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/4d08e3bd-93c9-404e-b54e-b9bf9bdb3b46.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/d93aa528-16b9-4463-8a63-d7ec9bbb2136.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/c84bc603-317a-44d6-82e2-c9996412ccde.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/b891d4f7-d2a8-4abb-9314-25189f72b4c5.png","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/9a0ce298-d12d-43ba-95f7-94f90b92973e.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/c50a0313-dce8-4268-b3c1-984045c0b4c5.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/a0af4729-a364-49b3-b3e8-595f102215c7.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/1caf5e09-debe-4457-b697-5275818f8d4b.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/b346de63-2729-4c88-90c0-bcb9dd8f1edf.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/e4065421-0313-4647-bc18-eaa22731120e.png","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/05b2d7c1-ae41-49a2-9c87-d06789627f92.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/2f12bf9c-4870-4c6e-8d20-fa0f02b47dcf.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/0c69c4e6-9372-42ac-9096-8fbf148ede4a.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/b805846e-a14c-4ba2-9261-a79dd74603ec.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/9d239e30-a33e-42d6-b987-ab2ae12cdd27.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/efc36db2-bcbb-4d3a-baac-48d3b3990dba.jpeg"];
     var currentIndex = 0;
     var touchStartX = 0;
-    var touchEndX = 0;
     var isSwiping = false;
 
     function updateMainImage() {
@@ -454,7 +623,6 @@
         updateMainImage();
     }
 
-    // === Обработка свайпа для карусели ===
     const carouselMain = document.getElementById('carouselMain');
     if (carouselMain) {
         carouselMain.addEventListener('touchstart', function(e) {
@@ -494,6 +662,7 @@
     const checkInContainer = document.getElementById('checkInInput');
     const checkOutContainer = document.getElementById('checkOutInput');
     const dateError = document.getElementById('dateError');
+    const bookBtn = document.getElementById('bookBtn');
 
     let disabledDates = [];
     let disabledDateStrings = [];
@@ -501,47 +670,27 @@
 
     const DATES_PATH = '../dates/';
 
-    async function loadBookingData() {
-        const id = 1983;
-        const url = `${DATES_PATH}${id}.json`;
-        console.log('Загрузка данных о занятости из:', url);
-        try {
-            const response = await fetch(url);
-            if (!response.ok) {
-                disabledDates = [];
-                disabledDateStrings = [];
-                console.log('Файл не найден, объект свободен');
-                return;
-            }
-            const data = await response.json();
-            if (Array.isArray(data)) {
-                const bookedPeriods = data.map(item => ({
-                    check_in: new Date(item.check_in + 'T00:00:00'),
-                    check_out: new Date(item.check_out + 'T00:00:00')
-                }));
-                disabledDates = [];
-                disabledDateStrings = [];
-                bookedPeriods.forEach(period => {
-                    let d = new Date(period.check_in);
-                    while (d < period.check_out) {
-                        const dStr = formatDateYMD(d);
-                        disabledDateStrings.push(dStr);
-                        disabledDates.push(new Date(d));
-                        d.setDate(d.getDate() + 1);
-                    }
-                });
-            } else {
-                disabledDates = [];
-                disabledDateStrings = [];
-            }
-        } catch (e) {
-            disabledDates = [];
-            disabledDateStrings = [];
-            console.warn('Ошибка загрузки данных о занятости:', e);
+    // ===== ФУНКЦИЯ ДЛЯ ПОСТРОЕНИЯ ССЫЛКИ НА ЧАТ (ТОЛЬКО ДЛЯ СООБЩЕНИЯ ОБ ОШИБКЕ) =====
+    function buildChatLink() {
+        let params = new URLSearchParams();
+        params.set('context', 'booking');
+        params.set('listing_id', LISTING_ID);
+        let checkInDate = checkIn ? new Date(checkIn) : new Date();
+        let checkOutDate = checkOut ? new Date(checkOut) : new Date(checkInDate);
+        if (!checkOut || checkOut <= checkIn) {
+            checkOutDate = new Date(checkInDate);
+            checkOutDate.setDate(checkOutDate.getDate() + 1);
         }
-        console.log('Занятые даты (строки):', disabledDateStrings);
+        params.set('check_in', formatDateYMD(checkInDate));
+        params.set('check_out', formatDateYMD(checkOutDate));
+        const adults = parseInt(document.getElementById('adultsCount')?.innerText || '1');
+        const children = parseInt(document.getElementById('childrenCount')?.innerText || '0');
+        params.set('guests', adults + children);
+        params.set('listing_title', LISTING_TITLE);
+        return '../chat.html?' + params.toString();
     }
 
+    // === ФУНКЦИИ ДЛЯ ДАТ ===
     function formatDateYMD(date) {
         let d = date.getDate(), m = date.getMonth()+1, y = date.getFullYear();
         return `${y}-${m<10?'0'+m:m}-${d<10?'0'+d:d}`;
@@ -560,14 +709,74 @@
         let d = new Date(start);
         while (d < end) {
             const str = formatDateYMD(d);
-            if (disabledDateStrings.includes(str)) {
-                return true;
-            }
+            if (disabledDateStrings.includes(str)) return true;
             d.setDate(d.getDate() + 1);
         }
         return false;
     }
 
+    // === ОБНОВЛЕНИЕ СОСТОЯНИЯ КНОПКИ БРОНИРОВАНИЯ ===
+    function updateBookingButton() {
+        const btn = bookBtn;
+        const errorDiv = dateError;
+        if (!checkIn || !checkOut) {
+            btn.disabled = true;
+            errorDiv.style.display = 'block';
+            errorDiv.innerHTML = 'Пожалуйста, выберите даты заезда и выезда.';
+            return;
+        }
+        if (checkOut <= checkIn) {
+            btn.disabled = true;
+            errorDiv.style.display = 'block';
+            errorDiv.innerHTML = 'Дата выезда должна быть позже даты заезда.';
+            return;
+        }
+        if (hasBookedDaysBetween(checkIn, checkOut)) {
+            btn.disabled = true;
+            const chatLink = buildChatLink();
+            errorDiv.style.display = 'block';
+            errorDiv.innerHTML = `Выбранные даты включают занятые дни. Пожалуйста, выберите другие даты. Либо <a href="${chatLink}" target="_blank" style="color:#ff385c; font-weight:600; text-decoration:underline;">свяжитесь с поддержкой</a> и мы уточним у владельца возможность освободить ваши даты. Мы свяжемся с владельцем жилья и уточним есть ли возможность брони на эти даты, т.к. многие владельцы оставляют некоторые даты себе для продажи по повышенному тарифу.`;
+            return;
+        }
+        // Всё хорошо
+        btn.disabled = false;
+        errorDiv.style.display = 'none';
+    }
+
+    // === ЗАГРУЗКА ДАННЫХ О ЗАНЯТОСТИ ===
+    async function loadBookingData() {
+        const id = 1983;
+        const url = `${DATES_PATH}${id}.json`;
+        try {
+            const response = await fetch(url);
+            if (!response.ok) { disabledDates = []; disabledDateStrings = []; return; }
+            const data = await response.json();
+            if (Array.isArray(data)) {
+                disabledDates = [];
+                disabledDateStrings = [];
+                data.forEach(item => {
+                    let d = new Date(item.check_in + 'T00:00:00');
+                    const end = new Date(item.check_out + 'T00:00:00');
+                    while (d < end) {
+                        const dStr = formatDateYMD(d);
+                        disabledDateStrings.push(dStr);
+                        disabledDates.push(new Date(d));
+                        d.setDate(d.getDate() + 1);
+                    }
+                });
+            } else {
+                disabledDates = [];
+                disabledDateStrings = [];
+            }
+        } catch (e) {
+            disabledDates = [];
+            disabledDateStrings = [];
+        }
+        // После загрузки данных обновляем кнопку
+        updateBookingButton();
+    }
+
+    // === ИНИЦИАЛИЗАЦИЯ КАЛЕНДАРЕЙ ===
     async function initDatePickers() {
         await loadBookingData();
 
@@ -600,21 +809,7 @@
                     } else {
                         fpOut.set('minDate', checkIn);
                     }
-                    if (checkIn && checkOut && hasBookedDaysBetween(checkIn, checkOut)) {
-                        dateError.textContent = 'Выбранные даты включают занятые дни. Пожалуйста, выберите другие даты.';
-                        dateError.style.display = 'block';
-                        checkIn = null;
-                        checkOut = null;
-                        checkInHidden.value = '';
-                        checkOutHidden.value = '';
-                        checkInDisplay.value = '';
-                        checkOutDisplay.value = '';
-                        fpIn.clear();
-                        fpOut.clear();
-                        return;
-                    } else {
-                        dateError.style.display = 'none';
-                    }
+                    updateBookingButton(); // обновляем состояние кнопки
                     fpOut.open();
                 }
             }
@@ -636,19 +831,13 @@
                     if (checkIn && newCheckOut <= checkIn) {
                         alert('Дата выезда должна быть позже даты заезда');
                         fpOut.setDate(checkOut || addDays(checkIn, 1));
+                        updateBookingButton();
                         return;
-                    }
-                    if (checkIn && newCheckOut && hasBookedDaysBetween(checkIn, newCheckOut)) {
-                        dateError.textContent = 'Выбранные даты включают занятые дни. Пожалуйста, выберите другие даты.';
-                        dateError.style.display = 'block';
-                        fpOut.setDate(checkOut || addDays(checkIn, 1));
-                        return;
-                    } else {
-                        dateError.style.display = 'none';
                     }
                     checkOut = newCheckOut;
                     checkOutHidden.value = formatDateYMD(checkOut);
                     checkOutDisplay.value = dateStr;
+                    updateBookingButton();
                 }
             }
         });
@@ -667,6 +856,8 @@
             fpIn.redraw();
             fpOut.redraw();
         }
+        // после инициализации обновляем кнопку
+        updateBookingButton();
     }
 
     initDatePickers();
@@ -679,24 +870,13 @@
         if (!petsBadge) {
             checkbox.disabled = true;
             checkbox.checked = false;
-            if (container) {
-                container.classList.add('disabled');
-            }
-            if (window.pets !== undefined) {
-                window.pets = false;
-            }
+            if (container) container.classList.add('disabled');
+            window.pets = false;
         } else {
             checkbox.disabled = false;
-            if (container) {
-                container.classList.remove('disabled');
-            }
+            if (container) container.classList.remove('disabled');
         }
-        if (window.pets !== undefined && !checkbox.disabled) {
-            // Оставляем значение как есть
-        }
-        if (typeof updateGuestDisplay === 'function') {
-            updateGuestDisplay();
-        }
+        if (typeof updateGuestDisplay === 'function') updateGuestDisplay();
     }
 
     // === ГОСТИ ===
@@ -740,7 +920,6 @@
 
         const adultPlus = document.querySelector('.guest-category:first-child .counter button[data-type="adults"][data-dir="+"]');
         const childPlus = document.querySelector('.guest-category:nth-child(2) .counter button[data-type="children"][data-dir="+"]');
-
         if (adultPlus) adultPlus.disabled = (total >= limit);
         if (childPlus) childPlus.disabled = (total >= limit);
     }
@@ -811,9 +990,7 @@
             const currentAdults = parseInt(document.getElementById('adultsCount').innerText);
             const currentChildren = parseInt(document.getElementById('childrenCount').innerText);
             let total = currentAdults + currentChildren;
-            if (total >= maxGuests) {
-                return;
-            }
+            if (total >= maxGuests) return;
             if (val < max) span.innerText = ++val;
             updateGuestLimitWarning();
         });
@@ -841,23 +1018,22 @@
         }
 
         if (hasBookedDaysBetween(checkIn, checkOut)) {
-            dateError.textContent = 'Выбранные даты включают занятые дни. Пожалуйста, выберите другие даты.';
+            const chatLink = buildChatLink();
+            dateError.innerHTML = `Выбранные даты включают занятые дни. Пожалуйста, выберите другие даты. Либо <a href="${chatLink}" target="_blank" style="color:#ff385c; font-weight:600; text-decoration:underline;">свяжитесь с поддержкой</a>. Мы свяжемся с владельцем жилья и уточним есть ли возможность брони на эти даты, т.к. многие владельцы оставляют некоторые даты себе для продажи по повышенному тарифу.`;
             dateError.style.display = 'block';
             return;
         }
 
         if (adults + children > maxGuests) {
-            alert(`Количество гостей (взрослые + дети) не может превышать ${maxGuests}. Пожалуйста, измените выбор.`);
+            alert(`Количество гостей (взрослые + дети) не может превышать ${maxGuests}.`);
             return;
         }
 
         const nights = Math.ceil((checkOut - checkIn) / (1000 * 60 * 60 * 24));
-        const imageForBooking = photos.length > 0 ? photos[0] : '';
-
         const bookingData = {
             listingId: 1983,
             title: 'Вилла P с частным бассейном - 3 спальни Фукуок (рядом с пляжем)',
-            image: imageForBooking,
+            image: photos.length ? photos[0] : '',
             pricePerNight: 7769,
             checkIn: formatDateYMD(checkIn),
             checkOut: formatDateYMD(checkOut),
@@ -869,20 +1045,15 @@
             totalPrice: nights * 7769,
             maxGuests: maxGuests
         };
-
         localStorage.setItem('bookingData', JSON.stringify(bookingData));
         localStorage.setItem('lastBooking', JSON.stringify(bookingData));
         window.location.href = '../checkout.html';
     });
 
-    // === ВОЗВРАТ НА ГЛАВНУЮ (ПОЛНОСТЬЮ НА JS, БЕЗ index.php) ===
+    // === ВОЗВРАТ НА ГЛАВНУЮ ===
     function goBackOrHome() {
-        if (window.history.length > 1) {
-            window.history.back();
-        } else {
-            // Переход на главную страницу без явного index.php
-            window.location.href = '../';
-        }
+        if (window.history.length > 1) window.history.back();
+        else window.location.href = '../';
     }
 
     // === КАРТА ===
@@ -900,6 +1071,139 @@
         .addTo(map)
         .bindPopup("<b>Вилла P с частным бассейном - 3 спальни Фукуок (рядом с пляжем)</b><br>Фукуок, Вьетнам")
         .openPopup();
+
+    // ============================================================
+    //  ПЛАВАЮЩАЯ КНОПКА ЧАТА + УВЕДОМЛЕНИЕ (С ИЗМЕНЕНИЯМИ)
+    // ============================================================
+    (function() {
+        const BASE_URL = 'https://script.google.com/macros/s/AKfycbwu6iYjDr49HMdiyyZKSnaGupRYTR-1vqObxD30GjHCFrX0A3BB9ySwv4b2ZnTKaaKH/exec'; // замените на ваш URL
+        const CHECK_INTERVAL = 5000;
+
+        let userID = localStorage.getItem('chat_user_id');
+        if (!userID) {
+            userID = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+            localStorage.setItem('chat_user_id', userID);
+        }
+
+        let notifiedIds = new Set();
+        const storedNotified = localStorage.getItem('chat_notified_msgids');
+        if (storedNotified) {
+            try {
+                JSON.parse(storedNotified).forEach(id => notifiedIds.add(id));
+            } catch (e) {}
+        }
+
+        let unreadCount = 0;
+
+        // Кнопка чата
+        const fab = document.createElement('button');
+        fab.className = 'chat-fab';
+        fab.innerHTML = `💬<span class="badge hidden" id="chatBadge">0</span>`;
+        fab.setAttribute('aria-label', 'Открыть чат поддержки');
+        fab.onclick = function() {
+            openChatAndClear();
+        };
+        document.body.appendChild(fab);
+        const badge = fab.querySelector('.badge');
+
+        // Тоast-уведомление
+        const toast = document.createElement('div');
+        toast.className = 'chat-toast';
+        toast.innerHTML = `
+            <div class="icon">💬</div>
+            <div class="content">
+                <div class="title">Новое сообщение</div>
+                <div class="desc">от службы поддержки</div>
+            </div>
+            <button class="close" id="toastClose">&times;</button>
+        `;
+        document.body.appendChild(toast);
+        const toastClose = toast.querySelector('#toastClose');
+
+        // Функция открытия чата и сброса уведомлений
+        function openChatAndClear() {
+            unreadCount = 0;
+            updateBadge();
+            localStorage.setItem('chat_notified_msgids', JSON.stringify([...notifiedIds]));
+            hideToast();
+            window.open('../chat.html', '_blank');
+        }
+
+        // Функция показа уведомления (без автоматического скрытия)
+        function showToast() {
+            toast.classList.add('show');
+            // больше нет автоматического скрытия!
+        }
+
+        function hideToast() {
+            toast.classList.remove('show');
+        }
+
+        // Обновление бейджа
+        function updateBadge() {
+            if (unreadCount > 0) {
+                badge.textContent = unreadCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        // Клик по крестику – скрываем тост
+        toastClose.addEventListener('click', function(e) {
+            e.stopPropagation();
+            hideToast();
+        });
+
+        // Клик по самому тосту (кроме крестика) – открываем чат
+        toast.addEventListener('click', function(e) {
+            if (e.target.closest('.close')) return;
+            openChatAndClear();
+        });
+
+        // Проверка новых сообщений
+        async function checkMessages() {
+            try {
+                const url = BASE_URL + '?userID=' + encodeURIComponent(userID);
+                const resp = await fetch(url, { cache: 'no-cache' });
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                const data = await resp.json();
+                if (data.error) { console.warn('API error:', data.error); return; }
+
+                const messages = data.messages || [];
+                let newManagerMsg = false;
+
+                messages.forEach(m => {
+                    if (m.userID === 'manager' && m.targetUserID === userID) {
+                        if (!notifiedIds.has(m.msgId)) {
+                            notifiedIds.add(m.msgId);
+                            unreadCount++;
+                            newManagerMsg = true;
+                        }
+                    }
+                });
+
+                if (newManagerMsg) {
+                    updateBadge();
+                    showToast(); // уведомление остаётся до взаимодействия
+                    fab.classList.add('pulse');
+                    setTimeout(() => fab.classList.remove('pulse'), 1200);
+                    localStorage.setItem('chat_notified_msgids', JSON.stringify([...notifiedIds]));
+                }
+            } catch (err) {
+                console.warn('Ошибка при проверке чата:', err.message);
+            }
+        }
+
+        // Первый запуск и периодическая проверка
+        checkMessages();
+        setInterval(checkMessages, CHECK_INTERVAL);
+
+        // При закрытии страницы сохраняем состояние
+        window.addEventListener('beforeunload', function() {
+            localStorage.setItem('chat_notified_msgids', JSON.stringify([...notifiedIds]));
+        });
+    })();
 </script>
 </body>
 </html>
