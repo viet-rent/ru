@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
   <style>
-    /* все стили как раньше, с небольшим дополнением для плавного скрытия */
     * { margin:0; padding:0; box-sizing:border-box; }
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -325,7 +324,7 @@
 </main>
 <script>
   // ============================================================
-  //  FRONTEND CHAT (с правильным скрытием email/телефона)
+  //  FRONTEND CHAT
   // ============================================================
 
   const BASE_URL = 'https://script.google.com/macros/s/AKfycbwu6iYjDr49HMdiyyZKSnaGupRYTR-1vqObxD30GjHCFrX0A3BB9ySwv4b2ZnTKaaKH/exec'; // замените на ваш GAS URL
@@ -367,7 +366,6 @@
   // ===== УПРАВЛЕНИЕ ВИДИМОСТЬЮ ПОЛЕЙ =====
   function toggleFieldVisibility(input) {
     const value = input.value.trim();
-    // Скрываем только если уже отправлено первое сообщение И поле не пустое
     if (firstMessageSent && value) {
       input.classList.add('hidden-field');
     } else {
@@ -375,7 +373,6 @@
     }
   }
 
-  // При загрузке проверяем сохранённые значения
   const savedEmail = localStorage.getItem('chat_email') || '';
   const savedPhone = localStorage.getItem('chat_phone') || '';
   emailInput.value = savedEmail;
@@ -383,7 +380,6 @@
   toggleFieldVisibility(emailInput);
   toggleFieldVisibility(phoneInput);
 
-  // Обработчики изменения (для случая, когда пользователь очистит поле после отправки)
   emailInput.addEventListener('input', function() {
     const val = this.value.trim();
     localStorage.setItem('chat_email', val);
@@ -396,7 +392,6 @@
     toggleFieldVisibility(this);
   });
 
-  // Также при изменении через автозаполнение
   emailInput.addEventListener('change', function() {
     toggleFieldVisibility(this);
   });
@@ -405,14 +400,11 @@
   });
 
   // ===== ОСТАЛЬНАЯ ЛОГИКА =====
-
-  // Восстановление имени
   const savedName = localStorage.getItem('chat_username');
   if (savedName) nameInput.value = savedName;
 
   nameInput.addEventListener('change', () => localStorage.setItem('chat_username', nameInput.value));
 
-  // ----- Звук уведомления -----
   function playNotificationSound() {
     try {
       const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -429,7 +421,6 @@
     } catch (e) {}
   }
 
-  // ----- Авто-расширение textarea -----
   function autoResize() {
     msgInput.style.height = 'auto';
     msgInput.style.height = Math.min(msgInput.scrollHeight, 150) + 'px';
@@ -437,7 +428,6 @@
   msgInput.addEventListener('input', autoResize);
   msgInput.addEventListener('focus', autoResize);
 
-  // ----- Рендер -----
   function createMessageElement(m) {
     const isOwn = (m.userID === userID);
     const isManager = (m.userID === 'manager');
@@ -463,7 +453,6 @@
     return div.innerHTML;
   }
 
-  // ----- Загрузка сообщений -----
   function loadMessages() {
     fetch(API_URL, { cache: 'no-cache' })
       .then(r => {
@@ -536,7 +525,7 @@
     messagesArea.scrollTop = messagesArea.scrollHeight;
   }
 
-  // ===== ОТПРАВКА СООБЩЕНИЯ (с установкой флага первого сообщения) =====
+  // ===== ОТПРАВКА СООБЩЕНИЯ =====
   function sendMessage() {
     const name = nameInput.value.trim() || 'Гость';
     const text = msgInput.value.trim();
@@ -547,14 +536,11 @@
     localStorage.setItem('chat_email', email);
     localStorage.setItem('chat_phone', phone);
 
-    // Если это первое сообщение, то после отправки устанавливаем флаг и скрываем поля
     if (!firstMessageSent) {
       firstMessageSent = true;
       localStorage.setItem('chat_first_message_sent', 'true');
-      // Если поля заполнены – они скроются при toggleFieldVisibility
     }
 
-    // Скрываем поля, если они заполнены и это первое сообщение (или уже было отправлено)
     toggleFieldVisibility(emailInput);
     toggleFieldVisibility(phoneInput);
 
@@ -570,7 +556,6 @@
       isResponse: false
     };
 
-    // Оптимистичное добавление
     const tempMsg = {
       timestamp: new Date().toISOString(),
       userID,
@@ -625,7 +610,6 @@
     }
   }
 
-  // ----- События -----
   sendBtn.addEventListener('click', sendMessage);
   msgInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -645,11 +629,9 @@
         renderAllMessages();
         const empty = messagesArea.querySelector('.empty');
         if (empty) empty.remove();
-        // Если есть сообщения, значит первое сообщение уже отправлено
         if (!firstMessageSent) {
           firstMessageSent = true;
           localStorage.setItem('chat_first_message_sent', 'true');
-          // Обновим видимость полей
           toggleFieldVisibility(emailInput);
           toggleFieldVisibility(phoneInput);
         }
@@ -658,6 +640,59 @@
   }
   loadMessages();
   setInterval(loadMessages, 5000);
+
+  // ============================================================
+  //  АВТОМАТИЧЕСКАЯ ОТПРАВКА СООБЩЕНИЯ ПРИ ПЕРЕХОДЕ ИЗ ОБЪЕКТА
+  //  (ТОЛЬКО JAVASCRIPT, БЕЗ PHP)
+  // ============================================================
+  (function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const context = urlParams.get('context');
+    if (context !== 'booking') return;
+
+    const listingId = urlParams.get('listing_id');
+    const checkIn = urlParams.get('check_in');
+    const checkOut = urlParams.get('check_out');
+    const guests = urlParams.get('guests');
+    const listingTitle = urlParams.get('listing_title') || 'Объект';
+
+    const storageKey = `chat_booking_sent_${listingId}_${checkIn}_${checkOut}`;
+    if (localStorage.getItem(storageKey) === 'true') {
+      console.log('Сообщение уже отправлено для этих дат, пропускаем.');
+      return;
+    }
+
+    let attempts = 0;
+    const maxAttempts = 15;
+
+    function trySendBookingRequest() {
+      attempts++;
+      if (typeof sendMessage !== 'function') {
+        if (attempts < maxAttempts) {
+          console.log(`Ожидание инициализации чата... попытка ${attempts}`);
+          setTimeout(trySendBookingRequest, 500);
+        } else {
+          console.warn('Не удалось отправить сообщение: sendMessage не определена');
+        }
+        return;
+      }
+
+      if (nameInput && nameInput.value.trim() === '') {
+        nameInput.value = 'Гость (запрос на бронь)';
+        localStorage.setItem('chat_username', nameInput.value);
+      }
+
+      const message = `Здравствуйте! Я хотел бы забронировать объект "${listingTitle}" (ID: ${listingId}) на даты с ${checkIn} по ${checkOut} для ${guests} гостей. Но система показывает, что эти даты заняты. Возможно ли связаться с владельцем и уточнить возможность бронирования? Спасибо!`;
+
+      msgInput.value = message;
+      sendMessage();
+
+      localStorage.setItem(storageKey, 'true');
+      console.log('Сообщение о бронировании отправлено автоматически.');
+    }
+
+    setTimeout(trySendBookingRequest, 600);
+  })();
 </script>
 </body>
 </html>
