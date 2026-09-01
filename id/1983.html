@@ -501,7 +501,7 @@
                 <tr><td>ID объекта</td><td>#1983</td></tr>
                                 <tr><td>PhuQuoc ID</td><td>1549237149093440969</td></tr>
                                 <tr><td>Добавлен на сайт</td><td>
-                    06.01.2024                </td></tr>
+                    04.05.2025                </td></tr>
             </table>
         </div>
         <div>
@@ -667,6 +667,8 @@
     let disabledDates = [];
     let disabledDateStrings = [];
     let fpIn = null, fpOut = null;
+    let lastRefreshTime = 0;
+    let isRefreshing = false;
 
     const DATES_PATH = '../dates/';
 
@@ -746,24 +748,26 @@
     // === ЗАГРУЗКА ДАННЫХ О ЗАНЯТОСТИ ===
     async function loadBookingData() {
         const id = 1983;
-        const url = `${DATES_PATH}${id}.json`;
+        const url = `${DATES_PATH}${id}.json?t=${Date.now()}`; // обход кеша
         try {
             const response = await fetch(url);
             if (!response.ok) { disabledDates = []; disabledDateStrings = []; return; }
             const data = await response.json();
             if (Array.isArray(data)) {
-                disabledDates = [];
-                disabledDateStrings = [];
+                const newDisabledDates = [];
+                const newDisabledStrings = [];
                 data.forEach(item => {
                     let d = new Date(item.check_in + 'T00:00:00');
                     const end = new Date(item.check_out + 'T00:00:00');
                     while (d < end) {
                         const dStr = formatDateYMD(d);
-                        disabledDateStrings.push(dStr);
-                        disabledDates.push(new Date(d));
+                        newDisabledStrings.push(dStr);
+                        newDisabledDates.push(new Date(d));
                         d.setDate(d.getDate() + 1);
                     }
                 });
+                disabledDates = newDisabledDates;
+                disabledDateStrings = newDisabledStrings;
             } else {
                 disabledDates = [];
                 disabledDateStrings = [];
@@ -772,8 +776,33 @@
             disabledDates = [];
             disabledDateStrings = [];
         }
-        // После загрузки данных обновляем кнопку
+        // После загрузки обновляем кнопку (если даты уже выбраны)
         updateBookingButton();
+    }
+
+    // === ФУНКЦИЯ ОБНОВЛЕНИЯ КАЛЕНДАРЕЙ ПРИ ОТКРЫТИИ ===
+    async function refreshDisabledDates() {
+        const now = Date.now();
+        // Не чаще 1 раза в 3 секунды
+        if (isRefreshing || (now - lastRefreshTime < 3000)) return;
+        isRefreshing = true;
+        lastRefreshTime = now;
+        try {
+            await loadBookingData(); // загружаем свежие данные
+            if (fpIn && fpOut) {
+                // Обновляем списки заблокированных дат
+                fpIn.set('disable', disabledDates);
+                fpOut.set('disable', disabledDates);
+                // Перерисовываем календари
+                fpIn.redraw();
+                fpOut.redraw();
+                // Обновляем состояние кнопки
+                updateBookingButton();
+            }
+        } catch (e) {
+            console.warn('Ошибка обновления дат:', e);
+        }
+        isRefreshing = false;
     }
 
     // === ИНИЦИАЛИЗАЦИЯ КАЛЕНДАРЕЙ ===
@@ -793,6 +822,9 @@
                     dayElem.classList.add('booked');
                 }
             },
+            onOpen: function() {
+                refreshDisabledDates(); // при открытии обновляем данные
+            },
             onChange: function(selectedDates, dateStr) {
                 if (selectedDates.length) {
                     checkIn = selectedDates[0];
@@ -809,7 +841,7 @@
                     } else {
                         fpOut.set('minDate', checkIn);
                     }
-                    updateBookingButton(); // обновляем состояние кнопки
+                    updateBookingButton();
                     fpOut.open();
                 }
             }
@@ -824,6 +856,9 @@
                 if (disabledDateStrings.includes(dStr)) {
                     dayElem.classList.add('booked');
                 }
+            },
+            onOpen: function() {
+                refreshDisabledDates();
             },
             onChange: function(selectedDates, dateStr) {
                 if (selectedDates.length) {
@@ -856,7 +891,6 @@
             fpIn.redraw();
             fpOut.redraw();
         }
-        // после инициализации обновляем кнопку
         updateBookingButton();
     }
 
