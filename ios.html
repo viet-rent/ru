@@ -1,86 +1,10 @@
-<?php
-session_start();
-require_once __DIR__ . '/config/database.php';
 
-// ===== СКРЫТЫЙ ПАРАМЕТР СКИДКИ (в процентах) =====
-define('DISCOUNT_PERCENT', 90);
-
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-if ($id == 0) { header('Location: index.php'); exit; }
-
-$stmt = $pdo->prepare("
-    SELECT l.*, 
-           h.first_name as host_name, 
-           h.last_name as host_lastname, 
-           h.is_superhost,
-           h.years_hosting,
-           h.avatar_url as host_avatar
-    FROM listings l
-    LEFT JOIN hosts h ON l.host_id = h.id
-    WHERE l.id = ? AND l.is_active = 1
-");
-$stmt->execute([$id]);
-$listing = $stmt->fetch();
-if (!$listing) die("Объект не найден");
-
-$discountedPrice = round($listing['price_per_night'] * (100 - DISCOUNT_PERCENT) / 100);
-
-$photosStmt = $pdo->prepare("SELECT photo_url FROM listing_photos WHERE listing_id = ? ORDER BY is_main DESC, sort_order");
-$photosStmt->execute([$id]);
-$photos = $photosStmt->fetchAll();
-
-if (count($photos) > 1) {
-    $first = array_shift($photos);
-    array_push($photos, $first);
-}
-
-$featuresStmt = $pdo->prepare("SELECT f.*, lf.is_available FROM features f JOIN listing_features lf ON f.id = lf.feature_id WHERE lf.listing_id = ? ORDER BY f.category, f.name");
-$featuresStmt->execute([$id]);
-$features = $featuresStmt->fetchAll();
-$featuresByCategory = [];
-foreach ($features as $feature) {
-    $featuresByCategory[$feature['category'] ?? 'Удобства'][] = $feature;
-}
-
-$highlightsStmt = $pdo->prepare("SELECT * FROM listing_highlights WHERE listing_id = ?");
-$highlightsStmt->execute([$id]);
-$highlights = $highlightsStmt->fetchAll();
-
-$rulesStmt = $pdo->prepare("SELECT * FROM house_rules WHERE listing_id = ?");
-$rulesStmt->execute([$id]);
-$rules = $rulesStmt->fetchAll();
-
-function getGuestWord($n) {
-    if ($n % 10 == 1 && $n % 100 != 11) return 'гость';
-    if (in_array($n % 10, [2,3,4]) && !in_array($n % 100, [12,13,14])) return 'гостя';
-    return 'гостей';
-}
-function getYearWord($n) {
-    if ($n % 10 == 1 && $n % 100 != 11) return 'год';
-    if (in_array($n % 10, [2,3,4]) && !in_array($n % 100, [12,13,14])) return 'года';
-    return 'лет';
-}
-
-$listingData = [
-    'id' => (int)$listing['id'],
-    'title' => $listing['title'],
-    'image' => isset($photos[0]['photo_url']) ? $photos[0]['photo_url'] : '',
-    'price' => $discountedPrice,
-    'originalPrice' => (int)$listing['price_per_night'],
-    'guests' => (int)$listing['guests'],
-    'city' => $listing['city'],
-    'address' => $listing['address'] ?? '',
-    'lat' => (float)$listing['latitude'],
-    'lng' => (float)$listing['longitude'],
-    'url' => 'listing.php?id=' . $id
-];
-?>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title><?php echo htmlspecialchars($listing['title']); ?> - VietRent</title>
+    <title>Вилла P с частным бассейном - 3 спальни Фукуок (рядом с пляжем) - VietRent</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -347,133 +271,238 @@ $listingData = [
     <a href="" onclick="goBackOrHome(); return false;" class="back-link"><i class="fas fa-arrow-left"></i> На главную</a>
 </header>
 <div class="container">
-    <?php if (!empty($photos)): ?>
-    <div class="carousel-container">
+        <div class="carousel-container">
         <div class="carousel-main" id="carouselMain">
-            <img id="mainImage" src="<?php echo htmlspecialchars($photos[0]['photo_url']); ?>" alt="Фото объекта">
+            <img id="mainImage" src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/2ac99e6c-ae35-4877-9af3-8c24e6671d4b.jpeg" alt="Фото объекта">
             <div class="carousel-nav carousel-prev" onclick="changeImage(-1)"><i class="fas fa-chevron-left"></i></div>
             <div class="carousel-nav carousel-next" onclick="changeImage(1)"><i class="fas fa-chevron-right"></i></div>
-            <div class="photo-counter"><span id="currentPhoto">1</span> / <span id="totalPhotos"><?php echo count($photos); ?></span></div>
+            <div class="photo-counter"><span id="currentPhoto">1</span> / <span id="totalPhotos">30</span></div>
         </div>
         <div class="carousel-thumbnails" id="thumbnails">
-            <?php foreach ($photos as $index => $photo): ?>
-            <div class="thumbnail <?php echo $index===0?'active':''; ?>" onclick="setImage(<?php echo $index; ?>)">
-                <img src="<?php echo htmlspecialchars($photo['photo_url']); ?>" alt="Фото <?php echo $index+1; ?>">
+                        <div class="thumbnail active" onclick="setImage(0)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/2ac99e6c-ae35-4877-9af3-8c24e6671d4b.jpeg" alt="Фото 1">
             </div>
-            <?php endforeach; ?>
-        </div>
+                        <div class="thumbnail " onclick="setImage(1)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/2b7a8b18-c707-4627-bbbe-25f07936b133.jpeg" alt="Фото 2">
+            </div>
+                        <div class="thumbnail " onclick="setImage(2)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/045952aa-fcca-4c97-932b-adec7b3caff6.jpeg" alt="Фото 3">
+            </div>
+                        <div class="thumbnail " onclick="setImage(3)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/391cfdd3-a7e9-470f-9b3e-db7542d97283.jpeg" alt="Фото 4">
+            </div>
+                        <div class="thumbnail " onclick="setImage(4)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/1c58d7fa-8cda-4dd3-9e99-146b9ca0cea7.jpeg" alt="Фото 5">
+            </div>
+                        <div class="thumbnail " onclick="setImage(5)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/d3ba3a7f-1d91-4d1c-8792-5fbb25e47186.jpeg" alt="Фото 6">
+            </div>
+                        <div class="thumbnail " onclick="setImage(6)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/b5466c7f-3a47-4c4e-bd8f-8905fecd666e.png" alt="Фото 7">
+            </div>
+                        <div class="thumbnail " onclick="setImage(7)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/beb997ba-61c9-4ab3-8db9-6ba1d79ebdeb.jpeg" alt="Фото 8">
+            </div>
+                        <div class="thumbnail " onclick="setImage(8)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/be84f86e-7e8a-469f-a0b5-d9d89bb8b1fe.jpeg" alt="Фото 9">
+            </div>
+                        <div class="thumbnail " onclick="setImage(9)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/9ead7c74-7e03-4063-bc8b-09733edcee9a.jpeg" alt="Фото 10">
+            </div>
+                        <div class="thumbnail " onclick="setImage(10)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/c9e45a7a-306c-48f2-91e2-bd517daaac94.jpeg" alt="Фото 11">
+            </div>
+                        <div class="thumbnail " onclick="setImage(11)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/8e6e43cc-3183-4843-8754-415d58fb0014.jpeg" alt="Фото 12">
+            </div>
+                        <div class="thumbnail " onclick="setImage(12)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/ac85e235-3347-4e28-a2b4-0074dfd7bb58.jpeg" alt="Фото 13">
+            </div>
+                        <div class="thumbnail " onclick="setImage(13)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/4c3e91d5-6aa1-4dab-8adb-f0eda0738eb3.jpeg" alt="Фото 14">
+            </div>
+                        <div class="thumbnail " onclick="setImage(14)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/4d08e3bd-93c9-404e-b54e-b9bf9bdb3b46.jpeg" alt="Фото 15">
+            </div>
+                        <div class="thumbnail " onclick="setImage(15)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/d93aa528-16b9-4463-8a63-d7ec9bbb2136.jpeg" alt="Фото 16">
+            </div>
+                        <div class="thumbnail " onclick="setImage(16)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/c84bc603-317a-44d6-82e2-c9996412ccde.jpeg" alt="Фото 17">
+            </div>
+                        <div class="thumbnail " onclick="setImage(17)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/b891d4f7-d2a8-4abb-9314-25189f72b4c5.png" alt="Фото 18">
+            </div>
+                        <div class="thumbnail " onclick="setImage(18)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/9a0ce298-d12d-43ba-95f7-94f90b92973e.jpeg" alt="Фото 19">
+            </div>
+                        <div class="thumbnail " onclick="setImage(19)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/c50a0313-dce8-4268-b3c1-984045c0b4c5.jpeg" alt="Фото 20">
+            </div>
+                        <div class="thumbnail " onclick="setImage(20)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/a0af4729-a364-49b3-b3e8-595f102215c7.jpeg" alt="Фото 21">
+            </div>
+                        <div class="thumbnail " onclick="setImage(21)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/1caf5e09-debe-4457-b697-5275818f8d4b.jpeg" alt="Фото 22">
+            </div>
+                        <div class="thumbnail " onclick="setImage(22)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/b346de63-2729-4c88-90c0-bcb9dd8f1edf.jpeg" alt="Фото 23">
+            </div>
+                        <div class="thumbnail " onclick="setImage(23)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/e4065421-0313-4647-bc18-eaa22731120e.png" alt="Фото 24">
+            </div>
+                        <div class="thumbnail " onclick="setImage(24)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/05b2d7c1-ae41-49a2-9c87-d06789627f92.jpeg" alt="Фото 25">
+            </div>
+                        <div class="thumbnail " onclick="setImage(25)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/2f12bf9c-4870-4c6e-8d20-fa0f02b47dcf.jpeg" alt="Фото 26">
+            </div>
+                        <div class="thumbnail " onclick="setImage(26)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/0c69c4e6-9372-42ac-9096-8fbf148ede4a.jpeg" alt="Фото 27">
+            </div>
+                        <div class="thumbnail " onclick="setImage(27)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/b805846e-a14c-4ba2-9261-a79dd74603ec.jpeg" alt="Фото 28">
+            </div>
+                        <div class="thumbnail " onclick="setImage(28)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/9d239e30-a33e-42d6-b987-ab2ae12cdd27.jpeg" alt="Фото 29">
+            </div>
+                        <div class="thumbnail " onclick="setImage(29)">
+                <img src="https://a0.muscache.com/im/pictures/hosting/Hosting-1549237149093440969/original/efc36db2-bcbb-4d3a-baac-48d3b3990dba.jpeg" alt="Фото 30">
+            </div>
+                    </div>
     </div>
-    <?php else: ?>
-    <div class="carousel-main" style="background:#f7f7f7; display:flex; align-items:center; justify-content:center;">
-        <i class="fas fa-image" style="font-size:64px; color:#ddd;"></i>
-    </div>
-    <?php endif; ?>
-    
+        
     <div class="content-grid">
         <div>
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;">
-                <h1 class="listing-title"><?php echo htmlspecialchars($listing['title']); ?></h1>
-                <?php if ($listing['rating']>0): ?>
-                <div class="rating-badge">
-                    <i class="fas fa-star"></i> <?php echo number_format($listing['rating'],1); ?> 
-                    <span style="color:#717171;">(<?php echo $listing['reviews_count']; ?> отзывов)</span>
-                </div>
-                <?php endif; ?>
-            </div>
+                <h1 class="listing-title">Вилла P с частным бассейном - 3 спальни Фукуок (рядом с пляжем)</h1>
+                            </div>
             <div class="listing-location">
-                <i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($listing['city']); ?>, <?php echo htmlspecialchars($listing['country']); ?>
-                <?php if (!empty($listing['address'])): ?><br><small><?php echo htmlspecialchars($listing['address']); ?></small><?php endif; ?>
-            </div>
+                <i class="fas fa-map-marker-alt"></i> Фукуок, Вьетнам                            </div>
             <div class="info-row">
-                <div class="info-item"><i class="fas fa-users"></i> до <?php echo $listing['guests']; ?> гостей</div>
+                <div class="info-item"><i class="fas fa-users"></i> до 8 гостей</div>
             </div>
-            <?php if (!empty($listing['host_name'])): ?>
-            <div class="host-info">
-                <div class="host-avatar">
-                    <?php if (!empty($listing['host_avatar'])): ?>
-                    <img src="<?php echo htmlspecialchars($listing['host_avatar']); ?>">
-                    <?php else: ?>
-                    <?php echo strtoupper(mb_substr($listing['host_name'],0,1)); ?>
-                    <?php endif; ?>
-                </div>
-                <div>
-                    <strong>Хозяин: <?php echo htmlspecialchars($listing['host_name'].' '.($listing['host_lastname']??'')); ?></strong>
-                    <?php if ($listing['is_superhost']): ?><span class="superhost-badge">Суперхозяин</span><?php endif; ?>
-                    <?php if ($listing['years_hosting']>0): ?>
-                    <div style="font-size:14px; color:#717171;">🏠 Принимает гостей <?php echo $listing['years_hosting']; ?> <?php echo getYearWord($listing['years_hosting']); ?></div>
-                    <?php endif; ?>
-                </div>
-            </div>
-            <?php endif; ?>
-            <?php if (!empty($highlights)): ?>
-            <div class="highlights-grid">
-                <?php foreach ($highlights as $h): ?>
-                <div class="highlight-card">
-                    <i class="fas fa-check-circle"></i>
-                    <div class="title"><?php echo htmlspecialchars($h['title']); ?></div>
-                    <div class="subtitle"><?php echo htmlspecialchars($h['subtitle']); ?></div>
-                </div>
-                <?php endforeach; ?>
-            </div>
-            <?php endif; ?>
-            <?php if ($listing['instant_bookable'] || $listing['self_checkin'] || $listing['pets_allowed']): ?>
-            <div style="margin:16px 0; display:flex; gap:8px; flex-wrap:wrap;">
-                <?php if ($listing['instant_bookable']): ?><span class="badge">⚡ Мгновенное бронирование</span><?php endif; ?>
-                <?php if ($listing['self_checkin']): ?><span class="badge">🔑 Самостоятельное заселение</span><?php endif; ?>
-                <?php if ($listing['pets_allowed']): ?><span class="badge">🐾 Можно с питомцами</span><?php endif; ?>
-            </div>
-            <?php endif; ?>
-            <?php if (!empty($featuresByCategory)): ?>
-                <h2 class="section-title">Что вас ждёт</h2>
-                <?php foreach ($featuresByCategory as $cat => $items): ?>
-                    <h3 class="section-subtitle"><?php echo htmlspecialchars($cat); ?></h3>
+                                                                <h2 class="section-title">Что вас ждёт</h2>
+                                    <h3 class="section-subtitle">Ванная</h3>
                     <div class="amenities-grid">
-                        <?php foreach ($items as $f): ?>
-                        <div class="amenity <?php echo $f['is_available']==0?'unavailable':''; ?>">
-                            <i class="fas <?php echo $f['icon']??'fa-check-circle'; ?>"></i>
-                            <span><?php echo htmlspecialchars($f['name']); ?></span>
+                                                <div class="amenity unavailable">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Горячая вода</span>
                         </div>
-                        <?php endforeach; ?>
-                    </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
-            <?php if (!empty($listing['description'])): ?>
-            <h2 class="section-title">Описание</h2>
-            <div class="description-text"><?php echo nl2br(htmlspecialchars($listing['description'])); ?></div>
-            <?php endif; ?>
-            <?php if (!empty($rules)): ?>
-            <h2 class="section-title">Правила</h2>
-            <ul class="rules-list">
-                <?php foreach ($rules as $rule): ?>
-                <li><i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($rule['rule']); ?></li>
-                <?php endforeach; ?>
-            </ul>
-            <?php endif; ?>
-            <?php if ($listing['latitude'] && $listing['longitude']): ?>
-            <h2 class="section-title">Где вы будете</h2>
+                                                <div class="amenity ">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Душ на улице</span>
+                        </div>
+                                            </div>
+                                    <h3 class="section-subtitle">Интернет и рабочее место</h3>
+                    <div class="amenities-grid">
+                                                <div class="amenity ">
+                            <i class="fas fa-wifi"></i>
+                            <span>Wi-Fi</span>
+                        </div>
+                                            </div>
+                                    <h3 class="section-subtitle">Кухня и столовая</h3>
+                    <div class="amenities-grid">
+                                                <div class="amenity ">
+                            <i class="fas fa-kitchen-set"></i>
+                            <span>Кухня</span>
+                        </div>
+                                            </div>
+                                    <h3 class="section-subtitle">Личное пространство и безопасность</h3>
+                    <div class="amenities-grid">
+                                                <div class="amenity ">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Внешние камеры видеонаблюдения</span>
+                        </div>
+                                                <div class="amenity unavailable">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Детектор дыма</span>
+                        </div>
+                                                <div class="amenity unavailable">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Детектор угарного газа</span>
+                        </div>
+                                                <div class="amenity unavailable">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Отопление</span>
+                        </div>
+                                                <div class="amenity unavailable">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Самое основное</span>
+                        </div>
+                                            </div>
+                                    <h3 class="section-subtitle">На улице</h3>
+                    <div class="amenities-grid">
+                                                <div class="amenity ">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Гриль для барбекю</span>
+                        </div>
+                                                <div class="amenity ">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Обеденная зона на воздухе</span>
+                        </div>
+                                            </div>
+                                    <h3 class="section-subtitle">Отопление и охлаждение</h3>
+                    <div class="amenities-grid">
+                                                <div class="amenity ">
+                            <i class="fas fa-wind"></i>
+                            <span>Кондиционер</span>
+                        </div>
+                                            </div>
+                                    <h3 class="section-subtitle">Парковка и объекты</h3>
+                    <div class="amenities-grid">
+                                                <div class="amenity ">
+                            <i class="fas fa-swimmer"></i>
+                            <span>Бассейн</span>
+                        </div>
+                                                <div class="amenity ">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Бесплатная парковка на территории</span>
+                        </div>
+                                                <div class="amenity ">
+                            <i class="fas fa-hot-tub"></i>
+                            <span>Джакузи</span>
+                        </div>
+                                            </div>
+                                    <h3 class="section-subtitle">Развлечения</h3>
+                    <div class="amenities-grid">
+                                                <div class="amenity ">
+                            <i class="fas fa-tv"></i>
+                            <span>Телевизор</span>
+                        </div>
+                                            </div>
+                                    <h3 class="section-subtitle">Спальня и прачечная</h3>
+                    <div class="amenities-grid">
+                                                <div class="amenity ">
+                            <i class="fas fa-tshirt"></i>
+                            <span>Стиральная машина</span>
+                        </div>
+                                                <div class="amenity unavailable">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Сушильная машина</span>
+                        </div>
+                                            </div>
+                                                    <h2 class="section-title">Описание</h2>
+            <div class="description-text">Местоположение:? До пляжа: 1,5 км.Расстояние до аэропорта: 4 км.? До рынка: 1 км.3 спальни, 3 кровати, 4 туалета.Есть 1 дополнительный матрас.Стандартный /6 взрослых + 2 детей младше- Отдельный бассейн.Кухня/зона для барбекюСобственная кухня ? Бесплатная стиральная машина – Посудомоечная машина☕️Кофемашина предоставляется.Примечание: камера может видеть коридор, чтобы предотвратить проблемы с безопасностью.<br />
+<br />
+**?️ МЕБЕЛЬ И УДОБСТВА НА ВИЛЛЕ? Удобства на вилле (краткое описание) * *1. Личные удобства•tПолотенца: 6 штук. Банные полотенца: 6 штук.•tЗубная щетка, бритва, гель для душа, шампунь, расческа.2. Бесплатные напитки • Бесплатные напитки•tКофемашина: 4 шт. — Кофейные капсулы: 4 шт.•tЧай: 2 штуки.•tБутилированная вода: 6 бутылок.3. Принадлежности• tСредство для мытья посуды: бесплатно - Средство для мытья посуды: бесплатно   •tСредство для стирки: бесплатно - Средство для стирки: бесплатно• tТаблетки для посудомоечной машины: 3 шт. бесплатно.4. Бытовая техника на вилле • Бытовая техника• tФен: 1 • tЭлектрическая кастрюля — электрическая сковорода: 1•tУтюг: 1.• tГриль для барбекю (гости готовят уголь и спирт).• tОсновные кухонные принадлежности.<br />
+<br />
+?Страны за пределами зоны обслуживания: Индия **? ПРАВИЛА ОБСЛУЖИВАНИЯИнформация об услугах **❌Пожалуйста, не шумите после 22:00. Не шумите после 22:00.  •tПредоставляем предметы при регистрации и пополняем их на 3-й день (по запросу гостя).Удобства предоставляются при заселении и пополняются на 3-й день по запросу.•tУборка и смена штор каждые 3 дня (по запросу гостей).Уборка и смена постельного белья каждые 3 дня по запросу.• tПлата за уборку (еда/напитки/мытье посуды): 300 000 – 500 000 донгов.Плата за уборку: 300 000–500 000 вьетнамских донгов (в зависимости от состояния).❌ В доме и комнате строго запрещено курение, употребление дуриана и продуктов с сильным запахом. В случае обнаружения будет наложен штраф в размере 3 000 000. ❌ Запрещено мусорить и рвать в бассейне. Плата за замену воды и уборку составит 5 000 000.• tЗалог за мебель: 2 000 000 вьетнамских донгов — возвращается при выезде.Залог за сохранность имущества: 2 000 000 донгов – возвращается при выезде.•?Гостям необходимо предоставить паспорт для регистрации.→ Гости обязаны предъявить паспорта для регистрации.</div>
+                                                <h2 class="section-title">Где вы будете</h2>
             <div id="map"></div>
-            <?php endif; ?>
-            <h2 class="section-title">Подробнее о жилье</h2>
+                        <h2 class="section-title">Подробнее о жилье</h2>
             <table class="details-table">
-                <tr><td>Тип жилья</td><td><?php echo htmlspecialchars($listing['property_type']??'Не указан'); ?></td></tr>
-                <tr><td>Тип размещения</td><td><?php echo htmlspecialchars($listing['room_type']??'Всё жильё'); ?></td></tr>
-                <tr><td>ID объекта</td><td>#<?php echo $listing['id']; ?></td></tr>
-                <?php if (!empty($listing['airbnb_id'])): ?>
-                <tr><td>PhuQuoc ID</td><td><?php echo htmlspecialchars($listing['airbnb_id']); ?></td></tr>
-                <?php endif; ?>
-                <tr><td>Добавлен на сайт</td><td>
-                    <?php
-                    $start = strtotime('2024-01-01');
-                    $end   = strtotime('2026-08-01');
-                    $randomDate = date('d.m.Y', mt_rand($start, $end));
-                    echo $randomDate;
-                    ?>
-                </td></tr>
+                <tr><td>Тип жилья</td><td>Вилла</td></tr>
+                <tr><td>Тип размещения</td><td>всё жильё</td></tr>
+                <tr><td>ID объекта</td><td>#1983</td></tr>
+                                <tr><td>PhuQuoc ID</td><td>1549237149093440969</td></tr>
+                                <tr><td>Добавлен на сайт</td><td>
+                    13.04.2025                </td></tr>
             </table>
         </div>
         <div>
             <div class="booking-card">
-                <div class="price"><?php echo number_format($discountedPrice); ?> ₽ <span>/ ночь</span></div>
+                <div class="price">7,769 ₽ <span>/ ночь</span></div>
                 <form method="POST" id="bookingForm" onsubmit="return false;">
                     <input type="hidden" name="action" value="book">
                     <div class="date-inputs">
@@ -543,18 +572,18 @@ $listingData = [
             <button class="apply-btn" id="applyGuests">Применить</button>
         </div>
         <div class="guest-limit-warning" id="guestLimitWarning">
-            Максимальное количество гостей (взрослые + дети): <strong><?php echo $listing['guests']; ?></strong>
+            Максимальное количество гостей (взрослые + дети): <strong>8</strong>
         </div>
     </div>
 </div>
 
 <script>
     // === Сохраняем данные объекта в localStorage ===
-    const listingData = <?php echo json_encode($listingData); ?>;
+    const listingData = {"id":1983,"title":"\u0412\u0438\u043b\u043b\u0430 P \u0441 \u0447\u0430\u0441\u0442\u043d\u044b\u043c \u0431\u0430\u0441\u0441\u0435\u0439\u043d\u043e\u043c - 3 \u0441\u043f\u0430\u043b\u044c\u043d\u0438 \u0424\u0443\u043a\u0443\u043e\u043a (\u0440\u044f\u0434\u043e\u043c \u0441 \u043f\u043b\u044f\u0436\u0435\u043c)","image":"https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/2ac99e6c-ae35-4877-9af3-8c24e6671d4b.jpeg","price":7769,"originalPrice":77686,"guests":8,"city":"\u0424\u0443\u043a\u0443\u043e\u043a","address":"","lat":10.1508,"lng":103.98036999999999,"url":"listing.php?id=1983"};
     localStorage.setItem('listingData', JSON.stringify(listingData));
 
     // === КАРУСЕЛЬ ===
-    var photos = <?php echo json_encode(array_column($photos,'photo_url')); ?>;
+    var photos = ["https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/2ac99e6c-ae35-4877-9af3-8c24e6671d4b.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/2b7a8b18-c707-4627-bbbe-25f07936b133.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/045952aa-fcca-4c97-932b-adec7b3caff6.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/391cfdd3-a7e9-470f-9b3e-db7542d97283.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/1c58d7fa-8cda-4dd3-9e99-146b9ca0cea7.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/d3ba3a7f-1d91-4d1c-8792-5fbb25e47186.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/b5466c7f-3a47-4c4e-bd8f-8905fecd666e.png","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/beb997ba-61c9-4ab3-8db9-6ba1d79ebdeb.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/be84f86e-7e8a-469f-a0b5-d9d89bb8b1fe.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/9ead7c74-7e03-4063-bc8b-09733edcee9a.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/c9e45a7a-306c-48f2-91e2-bd517daaac94.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/8e6e43cc-3183-4843-8754-415d58fb0014.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/ac85e235-3347-4e28-a2b4-0074dfd7bb58.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/4c3e91d5-6aa1-4dab-8adb-f0eda0738eb3.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/4d08e3bd-93c9-404e-b54e-b9bf9bdb3b46.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/d93aa528-16b9-4463-8a63-d7ec9bbb2136.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/c84bc603-317a-44d6-82e2-c9996412ccde.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/b891d4f7-d2a8-4abb-9314-25189f72b4c5.png","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/9a0ce298-d12d-43ba-95f7-94f90b92973e.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/c50a0313-dce8-4268-b3c1-984045c0b4c5.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/a0af4729-a364-49b3-b3e8-595f102215c7.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/1caf5e09-debe-4457-b697-5275818f8d4b.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/b346de63-2729-4c88-90c0-bcb9dd8f1edf.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/e4065421-0313-4647-bc18-eaa22731120e.png","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/05b2d7c1-ae41-49a2-9c87-d06789627f92.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/2f12bf9c-4870-4c6e-8d20-fa0f02b47dcf.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/0c69c4e6-9372-42ac-9096-8fbf148ede4a.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/b805846e-a14c-4ba2-9261-a79dd74603ec.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/9d239e30-a33e-42d6-b987-ab2ae12cdd27.jpeg","https:\/\/a0.muscache.com\/im\/pictures\/hosting\/Hosting-1549237149093440969\/original\/efc36db2-bcbb-4d3a-baac-48d3b3990dba.jpeg"];
     var currentIndex = 0;
     var touchStartX = 0;
     var touchEndX = 0;
@@ -635,7 +664,7 @@ $listingData = [
     const DATES_PATH = '../dates/';
 
     async function loadBookingData() {
-        const id = <?php echo $id; ?>;
+        const id = 1983;
         const url = `${DATES_PATH}${id}.json`;
         console.log('Загрузка данных о занятости из:', url);
         try {
@@ -738,8 +767,8 @@ $listingData = [
                         const tempCheckOut = formatDateYMD(checkOut);
                         const adults = parseInt(document.getElementById('adultsCount')?.innerText || '1');
                         const children = parseInt(document.getElementById('childrenCount')?.innerText || '0');
-                        const listingId = <?php echo $id; ?>;
-                        const listingTitle = '<?php echo addslashes($listing['title']); ?>';
+                        const listingId = 1983;
+                        const listingTitle = 'Вилла P с частным бассейном - 3 спальни Фукуок (рядом с пляжем)';
                         const chatLink = `../chat.html?context=booking&listing_id=${listingId}&check_in=${tempCheckIn}&check_out=${tempCheckOut}&listing_title=${encodeURIComponent(listingTitle)}`;
                         
                         dateError.innerHTML = `Выбранные даты включают занятые дни. Пожалуйста, выберите другие даты. Либо <a href="${chatLink}" style="color:#ff385c; font-weight:600; text-decoration:underline;">свяжитесь с поддержкой</a> и мы уточним у владельца возможность освободить ваши даты. Мы свяжемся с владельцем жилья и утоним есть ли возможность брони на эти даты, т.к. многие владельцы оставляют некоторые даты себе для продажи по повышенному тарифу.`;
@@ -778,8 +807,8 @@ $listingData = [
                         const adults = parseInt(document.getElementById('adultsCount')?.innerText || '1');
                         const children = parseInt(document.getElementById('childrenCount')?.innerText || '0');
                         const guests = adults + children;
-                        const listingId = <?php echo $id; ?>;
-                        const listingTitle = '<?php echo addslashes($listing['title']); ?>';
+                        const listingId = 1983;
+                        const listingTitle = 'Вилла P с частным бассейном - 3 спальни Фукуок (рядом с пляжем)';
                         const chatLink = `../chat.html?context=booking&listing_id=${listingId}&check_in=${tempCheckIn}&check_out=${tempCheckOut}&listing_title=${encodeURIComponent(listingTitle)}`;
                         
                         dateError.innerHTML = `Выбранные даты включают занятые дни. Пожалуйста, выберите другие даты. Либо <a href="${chatLink}" style="color:#ff385c; font-weight:600; text-decoration:underline;">свяжитесь с поддержкой</a>. Мы свяжемся с владельцем жилья и уточним есть ли возможность брони на эти даты, т.к. многие владельцы оставляют некоторые даты себе для продажи по повышенному тарифу.`;
@@ -843,7 +872,7 @@ $listingData = [
     }
 
     // === ГОСТИ ===
-    var maxGuests = <?php echo (int)$listing['guests']; ?>;
+    var maxGuests = 8;
     let adults = 1, children = 0, infants = 0, pets = false;
     const guestPicker = document.getElementById('guestPicker');
     const guestPickerValue = document.getElementById('guestPickerValue');
@@ -989,8 +1018,8 @@ $listingData = [
             const adults = parseInt(document.getElementById('adultsCount')?.innerText || '1');
             const children = parseInt(document.getElementById('childrenCount')?.innerText || '0');
             const guests = adults + children;
-            const listingId = <?php echo $id; ?>;
-            const listingTitle = '<?php echo addslashes($listing['title']); ?>';
+            const listingId = 1983;
+            const listingTitle = 'Вилла P с частным бассейном - 3 спальни Фукуок (рядом с пляжем)';
             const chatLink = `../chat.html?context=booking&listing_id=${listingId}&check_in=${tempCheckIn}&check_out=${tempCheckOut}&guests=${guests}&listing_title=${encodeURIComponent(listingTitle)}`;
             
             dateError.innerHTML = `Выбранные даты включают занятые дни. Пожалуйста, выберите другие даты. Либо <a href="${chatLink}" style="color:#ff385c; font-weight:600; text-decoration:underline;">свяжитесь с поддержкой</a>. Мы свяжемся с владельцем жилья и уточним есть ли возможность брони на эти даты, т.к. многие владельцы оставляют некоторые даты себе для продажи по повышенному тарифу.`;
@@ -1007,10 +1036,10 @@ $listingData = [
         const imageForBooking = photos.length > 0 ? photos[0] : '';
 
         const bookingData = {
-            listingId: <?php echo $id; ?>,
-            title: '<?php echo addslashes($listing['title']); ?>',
+            listingId: 1983,
+            title: 'Вилла P с частным бассейном - 3 спальни Фукуок (рядом с пляжем)',
             image: imageForBooking,
-            pricePerNight: <?php echo $discountedPrice; ?>,
+            pricePerNight: 7769,
             checkIn: formatDateYMD(checkIn),
             checkOut: formatDateYMD(checkOut),
             nights: nights,
@@ -1018,7 +1047,7 @@ $listingData = [
             children: children,
             infants: infants,
             pets: pets && !petsCheckbox.disabled,
-            totalPrice: nights * <?php echo $discountedPrice; ?>,
+            totalPrice: nights * 7769,
             maxGuests: maxGuests
         };
 
@@ -1038,7 +1067,7 @@ $listingData = [
     }
 
     // === КАРТА ===
-    var map = L.map('map').setView([<?php echo (float)$listing['latitude']; ?>, <?php echo (float)$listing['longitude']; ?>], 14);
+    var map = L.map('map').setView([10.1508, 103.98037], 14);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -1048,9 +1077,9 @@ $listingData = [
     markerElement.innerHTML = '<i class="fas fa-map-marker-alt" style="color:#ff385c; font-size:24px;"></i>';
     markerElement.style.cssText = 'background:white; border-radius:50%; padding:8px; box-shadow:0 2px 8px rgba(0,0,0,0.15); border:2px solid #ff385c; width:40px; height:40px; display:flex; align-items:center; justify-content:center;';
     var icon = L.divIcon({ html: markerElement, iconSize: [40,40], popupAnchor: [0,-20], className:'custom-div-icon' });
-    L.marker([<?php echo (float)$listing['latitude']; ?>, <?php echo (float)$listing['longitude']; ?>], { icon: icon })
+    L.marker([10.1508, 103.98037], { icon: icon })
         .addTo(map)
-        .bindPopup("<b><?php echo htmlspecialchars($listing['title']); ?></b><br><?php echo htmlspecialchars($listing['city']); ?>, <?php echo htmlspecialchars($listing['country']); ?>")
+        .bindPopup("<b>Вилла P с частным бассейном - 3 спальни Фукуок (рядом с пляжем)</b><br>Фукуок, Вьетнам")
         .openPopup();
 
     // ============================================================
