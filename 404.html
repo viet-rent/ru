@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Страница не найдена — VietRent</title>
+    <!-- Font Awesome 6 (как на основном сайте) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        /* === ОСНОВНЫЕ СТИЛИ (как на VietRent) === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #fff;
+            color: #222;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* === ХЕДЕР (как на основном сайте) === */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: white;
+            padding: 16px 40px;
+            border-bottom: 1px solid #ebebeb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff385c;
+        }
+
+        .logo i {
+            margin-right: 8px;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-controls .city {
+            font-size: 14px;
+            color: #717171;
+        }
+
+        .header-controls .city i {
+            margin-right: 6px;
+            color: #ff385c;
+        }
+
+        /* === ОСНОВНОЙ БЛОК 404 === */
+        .main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            background: #fafafa;
+        }
+
+        .error-card {
+            background: white;
+            border-radius: 16px;
+            padding: 50px 40px;
+            max-width: 520px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid #ebebeb;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.06);
+        }
+
+        .error-icon {
+            font-size: 64px;
+            color: #ff385c;
+            margin-bottom: 20px;
+        }
+
+        .error-card h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #222;
+        }
+
+        .error-card p {
+            font-size: 16px;
+            color: #717171;
+            line-height: 1.5;
+            margin-bottom: 28px;
+        }
+
+        .btn-home {
+            display: inline-block;
+            background: #ff385c;
+            color: white;
+            font-weight: 600;
+            font-size: 16px;
+            padding: 14px 36px;
+            border-radius: 30px;
+            transition: background 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-home i {
+            margin-right: 8px;
+        }
+
+        .btn-home:hover {
+            background: #e31c4b;
+        }
+
+        .redirect-note {
+            margin-top: 18px;
+            font-size: 14px;
+            color: #a0a0a0;
+        }
+
+        /* === АДАПТИВ === */
+        @media (max-width: 640px) {
+            .header {
+                padding: 12px 20px;
+            }
+            .logo {
+                font-size: 20px;
+            }
+            .header-controls .city {
+                font-size: 13px;
+            }
+            .error-card {
+                padding: 32px 20px;
+            }
+            .error-icon {
+                font-size: 48px;
+            }
+            .error-card h1 {
+                font-size: 22px;
+            }
+        }
+    </style>
+    <!-- Мета-редирект через 5 секунд -->
+    <meta http-equiv="refresh" content="5; url=https://viet-rent.github.io/ru/" />
+</head>
+<body>
+
+    <!-- ===== ХЕДЕР ===== -->
+    <header class="header">
+        <div class="logo">
+            <i class="fas fa-home"></i> VietRent
+        </div>
+        <div class="header-controls">
+            <span class="city"><i class="fas fa-map-pin"></i> Фукуок, Вьетнам</span>
+        </div>
+    </header>
+
+    <!-- ===== ОСНОВНОЙ БЛОК ===== -->
+    <main class="main">
+        <div class="error-card">
+            <div class="error-icon">
+                <i class="fas fa-map-signs"></i>
+            </div>
+            <h1>404 — Страница не найдена</h1>
+            <p>
+                К сожалению, мы не можем найти запрошенную страницу.<br />
+                Возможно, она была перемещена или удалена.
+            </p>
+            <a href="https://viet-rent.github.io/ru/" class="btn-home">
+                <i class="fas fa-arrow-left"></i> На главную
+            </a>
+            <p class="redirect-note">
+                <i class="fas fa-sync-alt fa-fw"></i> Перенаправление через 5 секунд...
+            </p>
+        </div>
+    </main>
+
+    <script>
+        // Дополнительный редирект через 5 секунд (дублируем мета-тег)
+        setTimeout(function() {
+            window.location.href = 'https://viet-rent.github.io/ru/';
+        }, 0);
+    </script>
+
+</body>
+</html>
